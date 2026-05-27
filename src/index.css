@@ -1,0 +1,369 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+SC:wght@300;400;700&display=swap');
+
+:root {
+  /* Morandi Color Palette */
+  --m-bg-canvas: #F6F5F2;          /* 燕麦暖白 */
+  --m-bg-card: rgba(255, 255, 255, 0.88); /* 半透明暖白 */
+  --m-map-base: #EAEBE9;          /* 地图底图浅灰泥 */
+  --m-map-green: #D2DCD0;         /* 地图绿植/公园区 */
+  --m-map-road: #FFFFFF;          /* 地图道路 */
+  
+  --m-primary: #E5A9A9;           /* 灰蜜桃粉 */
+  --m-primary-hover: #DB9999;     /* 灰蜜桃粉深色 */
+  --m-primary-light: rgba(229, 169, 169, 0.12); /* 浅蜜桃粉 */
+  
+  --m-secondary: #A8BDD1;         /* 烟雨蓝 */
+  --m-secondary-light: rgba(168, 189, 209, 0.12);
+  
+  --m-sage: #A3BCA9;              /* 鼠尾草绿 */
+  --m-sage-light: rgba(163, 188, 169, 0.12);
+  
+  --m-slate: #B0B7BD;             /* 石板灰 */
+  --m-slate-light: rgba(176, 183, 189, 0.12);
+
+  --m-text-main: #2D3238;         /* 深炭灰 */
+  --m-text-sub: #7A818A;          /* 中性烟灰 */
+  --m-text-muted: #A3AAB2;        /* 极浅灰 */
+  
+  --m-border: rgba(226, 229, 232, 0.6); /* 半透明浅白灰 */
+  --m-shadow-sm: 0 4px 12px rgba(45, 50, 56, 0.03);
+  --m-shadow-md: 0 8px 24px rgba(229, 169, 169, 0.06);
+  --m-shadow-lg: 0 16px 40px rgba(45, 50, 56, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Outfit', 'Noto Sans SC', sans-serif;
+  background-color: #0d0d12;
+  color: var(--m-text-main);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(122, 129, 138, 0.15);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(122, 129, 138, 0.3);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes pulseRing {
+  0% { transform: scale(0.95); opacity: 0.6; }
+  50% { transform: scale(1.15); opacity: 0.15; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Micro-interaction classes */
+.interactive-scale {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.interactive-scale:active {
+  transform: scale(0.97);
+}
+
+/* Common Layout Utilities */
+.app-container {
+  width: 100%;
+  height: 100%;
+  background-color: var(--m-bg-canvas);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Card glassmorphism */
+.glass-panel {
+  background: var(--m-bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--m-border);
+  box-shadow: var(--m-shadow-md);
+}
+
+/* Pin Badges */
+.badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid transparent;
+}
+
+.badge-peach {
+  background-color: var(--m-primary-light);
+  color: #B56767;
+  border-color: rgba(229, 169, 169, 0.3);
+}
+
+.badge-blue {
+  background-color: var(--m-secondary-light);
+  color: #557591;
+  border-color: rgba(168, 189, 209, 0.3);
+}
+
+.badge-sage {
+  background-color: var(--m-sage-light);
+  color: #5B7A63;
+  border-color: rgba(163, 188, 169, 0.3);
+}
+
+.badge-slate {
+  background-color: var(--m-slate-light);
+  color: #6C747C;
+  border-color: rgba(176, 183, 189, 0.3);
+}
+
+/* Buttons */
+.btn-round {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--m-primary);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(229, 169, 169, 0.2);
+}
+.btn-primary:hover {
+  background-color: var(--m-primary-hover);
+}
+
+.btn-secondary {
+  background-color: #FFFFFF;
+  color: var(--m-text-main);
+  border: 1px solid var(--m-border);
+  box-shadow: var(--m-shadow-sm);
+}
+.btn-secondary:hover {
+  background-color: var(--m-bg-canvas);
+}
+
+/* Custom interactive map elements */
+.map-canvas-container {
+  width: 100%;
+  height: 100%;
+  background-color: var(--m-map-base);
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Floating overlay panels */
+.floating-overlay-top {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.floating-search-bar {
+  width: 100%;
+  height: 38px;
+  border-radius: 9999px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.floating-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 11px;
+  color: var(--m-text-main);
+}
+.floating-search-input::placeholder {
+  color: var(--m-text-muted);
+}
+
+.filter-bar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 0;
+}
+.filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-item {
+  padding: 5px 12px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid var(--m-border);
+  background: var(--m-bg-card);
+  color: var(--m-text-sub);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-item.active {
+  background: var(--m-primary);
+  color: #FFFFFF;
+  border-color: var(--m-primary);
+  box-shadow: 0 3px 8px rgba(229, 169, 169, 0.15);
+}
+
+/* Bottom Tabbar */
+.bottom-tabbar {
+  height: 56px;
+  width: 100%;
+  background: #FFFFFF;
+  border-top: 1px solid var(--m-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 40;
+  padding-bottom: 4px;
+}
+
+.tab-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  color: var(--m-text-sub);
+  transition: all 0.2s ease;
+  width: 50px;
+}
+
+.tab-btn.active {
+  color: var(--m-primary);
+  transform: scale(1.05);
+}
+
+.tab-btn span {
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.tab-btn-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2;
+}
+
+/* Drawer / Slide up summary panel */
+.bottom-summary-drawer {
+  position: absolute;
+  bottom: 60px;
+  left: 12px;
+  right: 12px;
+  border-radius: 20px;
+  padding: 12px;
+  z-index: 35;
+}
+
+/* Mock Map Roads and Park layouts */
+.map-lake {
+  background-color: #CADCE6;
+  border-radius: 50%;
+  position: absolute;
+}
+.map-park {
+  background-color: var(--m-map-green);
+  border-radius: 8px;
+  position: absolute;
+}
+.map-road {
+  background-color: var(--m-map-road);
+  position: absolute;
+}
+
+
+/* Helper Utilities */
+.w-full {
+  width: 100%;
+}
+.h-full {
+  height: 100%;
+}
+.flex {
+  display: flex;
+}
+.flex-col {
+  flex-direction: column;
+}
+.flex-row {
+  flex-direction: row;
+}
+.flex-1 {
+  flex: 1;
+}
+.items-center {
+  align-items: center;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.justify-center {
+  justify-content: center;
+}
+.relative {
+  position: relative;
+}
+.absolute {
+  position: absolute;
+}
+.overflow-hidden {
+  overflow: hidden;
+}
+.overflow-y-auto {
+  overflow-y: auto;
+}
+
