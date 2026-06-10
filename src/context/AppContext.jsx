@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 const AppContext = createContext();
 
@@ -9,9 +9,15 @@ export function useApp() {
 export function AppProvider({ children }) {
   // 1. 用户与登录状态 (头像使用高质量 Unsplash 占位符，不使用 Emoji)
   const [user, setUser] = useState({
+    id: '1057860',
     name: '木子李_Muzi',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80',
+    avatar: '/avatar_muzi.png',
+    cover: '/cover_muzi.png',
     bio: '魔都排少、原神双修，谷子收集狂热粉',
+    gender: '保密',
+    birthday: '2004-10-12',
+    mbti: 'INFP',
+    phone: '138****8888',
     badges: ['痛包达人', '展会常客']
   });
 
@@ -59,7 +65,7 @@ export function AppProvider({ children }) {
       tags: ['漫展现场', '宅舞'],
       circleId: 'cir-004',
       videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-girl-dancing-happy-in-the-city-43152-large.mp4',
-      images: ['https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=300&q=80'],
+      images: ['/cover_sakura.png'],
       createdAt: '2026-05-23 18:15'
     }
   ]);
@@ -113,9 +119,15 @@ export function AppProvider({ children }) {
 
   const handleLoginSuccess = () => {
     setUser({
+      id: '1057860',
       name: '木子李_Muzi',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80',
+      avatar: '/avatar_muzi.png',
+      cover: '/cover_muzi.png',
       bio: '魔都排少、原神双修，谷子收集狂热粉',
+      gender: '保密',
+      birthday: '2004-10-12',
+      mbti: 'INFP',
+      phone: '138****8888',
       badges: ['痛包达人', '展会常客']
     });
     setShowLoginModal(false);
@@ -129,6 +141,116 @@ export function AppProvider({ children }) {
     setUser(null);
     resetToTab('circles');
   };
+
+  const [socialProfiles, setSocialProfiles] = useState([
+    {
+      id: 'u-001',
+      name: '猫又教研组长',
+      avatar: '/avatar_neko.png',
+      bio: '排少同好营主理人，周末常驻静安大悦城。',
+      tags: ['排少', '吃谷交换'],
+      isFollower: true,
+      isFollowing: true
+    },
+    {
+      id: 'u-002',
+      name: '秋叶原常驻喵',
+      avatar: '/avatar_neko.png',
+      bio: '谷子市集巡游者，喜欢帮同好找摊位。',
+      tags: ['同人市集', '扩列'],
+      isFollower: true,
+      isFollowing: false
+    },
+    {
+      id: 'u-003',
+      name: '提瓦特头号吟游诗人',
+      avatar: '/avatar_poet.png',
+      bio: '原神 FES 攻略整理中，欢迎互关约展。',
+      tags: ['原神', '攻略'],
+      isFollower: false,
+      isFollowing: true
+    },
+    {
+      id: 'u-004',
+      name: '夏沫之歌Cos',
+      avatar: '/avatar_cos.png',
+      bio: '周末互拍返图，手机和微单都可。',
+      tags: ['Cosplay', '返图'],
+      isFollower: false,
+      isFollowing: true
+    }
+  ]);
+
+  const toggleFollowUser = (profileId) => {
+    checkLogin(() => {
+      setSocialProfiles(prev => prev.map(profile => (
+        profile.id === profileId
+          ? { ...profile, isFollowing: !profile.isFollowing }
+          : profile
+      )));
+    });
+  };
+
+  const [accountBindings, setAccountBindings] = useState({
+    phone: '138****8888',
+    wechat: true,
+    qq: false,
+    bilibili: true
+  });
+
+  const [privacySettings, setPrivacySettings] = useState({
+    dmScope: 'mutual_or_same_circle',
+    publicPosts: true,
+    hideLocation: false,
+    hideIp: false,
+    allowNearby: true
+  });
+
+  const [notificationSettings, setNotificationSettings] = useState({
+    groupApproved: true,
+    likesAndCollects: true,
+    commentsAndMentions: true,
+    newFollowers: true
+  });
+
+  const [accountCancellation, setAccountCancellation] = useState(null);
+
+  const updatePrivacySetting = (key, value) => {
+    setPrivacySettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const updateNotificationSetting = (key, value) => {
+    setNotificationSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const rebindPhone = (newPhone) => {
+    if (!/^1\d{10}$/.test(newPhone)) {
+      return { ok: false, reason: '请输入 11 位手机号' };
+    }
+    const masked = `${newPhone.slice(0, 3)}****${newPhone.slice(7)}`;
+    setAccountBindings(prev => ({ ...prev, phone: masked }));
+    setUser(prev => prev ? { ...prev, phone: masked } : prev);
+    setUser(null);
+    resetToTab('circles');
+    return { ok: true };
+  };
+
+  const toggleThirdPartyBinding = (provider) => {
+    setAccountBindings(prev => {
+      const nextValue = !prev[provider];
+      const enabledSources = [
+        prev.phone,
+        provider === 'wechat' ? nextValue : prev.wechat,
+        provider === 'qq' ? nextValue : prev.qq,
+        provider === 'bilibili' ? nextValue : prev.bilibili
+      ].filter(Boolean).length;
+      if (!nextValue && enabledSources < 1) return prev;
+      return { ...prev, [provider]: nextValue };
+    });
+  };
+
+  // 关联的想去与收藏活动状态
+  const [activityRelations, setActivityRelations] = useState({});
 
   // 3. 漫展/主题活动 Mock 数据 (完全符合 PRD 字段，不带 Emoji)
   const [activities, setActivities] = useState([
@@ -145,7 +267,7 @@ export function AppProvider({ children }) {
       startTime: '2026-07-18T09:00:00',
       endTime: '2026-07-20T17:00:00',
       status: 'upcoming', // upcoming, ongoing, ended
-      cover: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=600&q=80',
+      cover: '/cover_sky.png',
       heatScore: 98,
       wantedCount: 3840,
       favoritedCount: 2980,
@@ -164,7 +286,7 @@ export function AppProvider({ children }) {
       startTime: '2026-07-25T09:00:00',
       endTime: '2026-07-27T18:00:00',
       status: 'upcoming',
-      cover: 'https://images.unsplash.com/photo-1563089145-599997674d42?auto=format&fit=crop&w=600&q=80',
+      cover: '/cover_sakura.png',
       heatScore: 95,
       wantedCount: 4500,
       favoritedCount: 3120,
@@ -183,7 +305,7 @@ export function AppProvider({ children }) {
       startTime: '2026-05-10T10:00:00',
       endTime: '2026-06-15T22:00:00',
       status: 'ongoing',
-      cover: 'https://images.unsplash.com/photo-1541562232579-512a21360020?auto=format&fit=crop&w=600&q=80',
+      cover: '/cover_muzi.png',
       heatScore: 89,
       wantedCount: 1540,
       favoritedCount: 920,
@@ -202,7 +324,7 @@ export function AppProvider({ children }) {
       startTime: '2026-05-20T11:00:00',
       endTime: '2026-05-24T21:00:00',
       status: 'ongoing',
-      cover: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80',
+      cover: '/cover_sakura.png',
       heatScore: 82,
       wantedCount: 890,
       favoritedCount: 650,
@@ -221,7 +343,7 @@ export function AppProvider({ children }) {
       startTime: '2026-08-12T09:00:00',
       endTime: '2026-08-15T18:00:00',
       status: 'upcoming',
-      cover: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80',
+      cover: '/cover_sky.png',
       heatScore: 97,
       wantedCount: 4200,
       favoritedCount: 3500,
@@ -249,17 +371,16 @@ export function AppProvider({ children }) {
       requirementSummary: '自带排球痛包，主吃乌野/音驹角色谷子，现场方便互相换谷。',
       locationVisibleRule: 'after_join',
       creator: {
-        name: '猫又教研组长',
-        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&h=100&q=80'
+        name: '木子李_Muzi',
+        avatar: '/avatar_muzi.png'
       },
         members: [
-          { name: '猫又教研组长', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&h=100&q=80', role: 'owner' },
-          { name: '小黑猫_研磨', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&h=100&q=80', role: 'member' },
-          { name: '日向家小暖', avatar: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=100&h=100&q=80', role: 'member' },
-          { name: '木子李_Muzi', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80', role: 'member' }
+          { name: '木子李_Muzi', avatar: '/avatar_muzi.png', role: 'owner' },
+          { name: '小黑猫_研磨', avatar: '/avatar_neko.png', role: 'member' },
+          { name: '日向家小暖', avatar: '/avatar_muzi.png', role: 'member' }
         ],
         pendingRequests: [
-          { id: 'req-101', name: '影山飞雄吹', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100&q=80', message: '求加入，带影山痛包 and 拍立得交换！' }
+          { id: 'req-101', name: '影山飞雄吹', avatar: '/avatar_poet.png', message: '求加入，带影山痛包 and 拍立得交换！' }
         ]
       },
       {
@@ -281,49 +402,17 @@ export function AppProvider({ children }) {
         locationVisibleRule: 'after_join',
         creator: {
           name: '夏沫之歌Cos',
-          avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=100&h=100&q=80'
+          avatar: '/avatar_cos.png'
         },
         members: [
-          { name: '夏沫之歌Cos', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=100&h=100&q=80', role: 'owner' },
-          { name: '云川晴空', avatar: 'https://images.unsplash.com/photo-1489980508314-941910ded1f4?auto=format&fit=crop&w=100&h=100&q=80', role: 'member' },
-          { name: '卡芙卡单推人', avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=100&h=100&q=80', role: 'member' },
-          { name: '流萤小宝贝', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=100&h=100&q=80', role: 'member' }
-        ],
-        pendingRequests: []
-      },
-      {
-        id: 'grp-003',
-        title: 'CP30展后周边无代差火锅狂欢聚餐',
-        type: 'dinner',
-        relatedActivityId: 'act-001',
-        city: '上海',
-        meetingAddress: '国家会展中心旁虹桥天地海底捞',
-        meetingAddressDetail: '仅团员可见：已预订了当晚18:30大桌，包房名“桃源乡”。现场联系电话：13816668888。',
-        lat: 31.1915,
-        lng: 121.2995,
-        startTime: '2026-07-18T18:30:00',
-        maxMembers: 10,
-        currentMembers: 6,
-        price: 'AA均摊约100',
-        status: 'recruiting',
-        requirementSummary: '逛完CP第一天一起聚餐吹水，纯吃货/同好均可，不限IP。',
-        locationVisibleRule: 'after_join',
-        creator: {
-          name: '干饭人阿杰',
-          avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100&q=80'
-        },
-        members: [
-          { name: '干饭人阿杰', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100&q=80', role: 'owner' }
+          { name: '夏沫之歌Cos', avatar: '/avatar_cos.png', role: 'owner' },
+          { name: '木子李_Muzi', avatar: '/avatar_muzi.png', role: 'member' },
+          { name: '猫又教研组长', avatar: '/avatar_neko.png', role: 'member' },
+          { name: '影山飞雄家的牛奶盒', avatar: '/avatar_poet.png', role: 'member' }
         ],
         pendingRequests: []
       }
     ]);
-
-    // 5. 活动参与关系 (我想去的 / 我收藏的)
-    const [activityRelations, setActivityRelations] = useState({
-      'act-001': { wanted: true, favorited: false },
-      'act-003': { wanted: false, favorited: true }
-    });
 
     const toggleWanted = (activityId) => {
       checkLogin(() => {
@@ -351,10 +440,10 @@ export function AppProvider({ children }) {
 
     // 6. 圈子列表 (完全不带 Emoji)
     const [circles, setCircles] = useState([
-      { id: 'cir-001', name: '排球少年同好营', avatar: '排球', avatarBg: '#E9C6C6', memberCount: 1540, postCount: 284, intro: '乌野、音驹、青城、枭谷！全国大赛，在这里集结！', tags: ['运动番', '排球少年', '吃谷交换'] },
-      { id: 'cir-002', name: '原神提瓦特同盟', avatar: '原神', avatarBg: '#D2DCD0', memberCount: 3980, postCount: 541, intro: '提瓦特大陆旅行者根据地。分享日常、游戏攻略与角色Cos。', tags: ['米哈游', '原神', 'Cosplay'] },
-      { id: 'cir-003', name: '崩坏星穹铁道分部', avatar: '铁道', avatarBg: '#C7D7E8', memberCount: 2200, postCount: 310, intro: '愿此行，终抵群星。星穹列车开拓者沙龙。', tags: ['米哈游', '星穹铁道', '周边同人'] },
-      { id: 'cir-004', name: 'CP同人创作交流会', avatar: '同人', avatarBg: '#E6D7E8', memberCount: 1890, postCount: 198, intro: 'Comicup 线下大本营，交流同人本、无偿图、自制谷子情报。', tags: ['同人志', '无偿交换', '画师企划'] }
+      { id: 'cir-001', name: '排球少年同好营', avatar: '排球', avatarImg: '/avatar_neko.png', avatarBg: '#E9C6C6', memberCount: 1540, postCount: 284, intro: '乌野、音驹、青城、枭谷！全国大赛，在这里集结！', tags: ['运动番', '排球少年', '吃谷交换'] },
+      { id: 'cir-002', name: '原神提瓦特同盟', avatar: '原神', avatarImg: '/avatar_cos.png', avatarBg: '#D2DCD0', memberCount: 3980, postCount: 541, intro: '提瓦特大陆旅行者根据地。分享日常、游戏攻略与角色Cos。', tags: ['米哈游', '原神', 'Cosplay'] },
+      { id: 'cir-003', name: '崩坏星穹铁道分部', avatar: '铁道', avatarImg: '/avatar_poet.png', avatarBg: '#C7D7E8', memberCount: 2200, postCount: 310, intro: '愿此行，终抵群星。星穹列车开拓者沙龙。', tags: ['米哈游', '星穹铁道', '周边同人'] },
+      { id: 'cir-004', name: 'CP同人创作交流会', avatar: '同人', avatarImg: '/avatar_muzi.png', avatarBg: '#E6D7E8', memberCount: 1890, postCount: 198, intro: 'Comicup 线下大本营，交流同人本、无偿图、自制谷子情报。', tags: ['同人志', '无偿交换', '画师企划'] }
     ]);
 
     // 圈子加入状态
@@ -389,6 +478,7 @@ export function AppProvider({ children }) {
         id: `cir-${Date.now()}`,
         name,
         avatar: name.substring(0, 2),
+        avatarImg: '/avatar_neko.png',
         avatarBg: '#EBDCD8',
         memberCount: 1,
         postCount: 0,
@@ -406,12 +496,12 @@ export function AppProvider({ children }) {
         circleId: 'cir-001',
         author: {
           name: '木子李_Muzi',
-          avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80'
+          avatar: '/avatar_muzi.png'
         },
         content: '晒一下新入手的音驹痛包！挂满了研磨和黑尾的徽章，准备去大悦城快闪面基咯！求同好面基扩列！',
         createdAt: '2026-05-24 12:00',
         images: [
-          'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=300&q=80'
+          '/cover_muzi.png'
         ],
         likeCount: 18,
         commentCount: 2,
@@ -427,7 +517,7 @@ export function AppProvider({ children }) {
         circleId: 'cir-001',
         author: {
           name: '木子李_Muzi',
-          avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80'
+          avatar: '/avatar_muzi.png'
         },
         content: '下午有人在大悦城吃谷吗？手头有几个多余的盲盒求当面交换，主求排球少年和原神！有的滴滴我呀~',
         createdAt: '2026-05-24 14:00',
@@ -444,13 +534,13 @@ export function AppProvider({ children }) {
         circleId: 'cir-001',
         author: {
           name: '影山飞雄家的牛奶盒',
-          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&h=100&q=80'
+          avatar: '/avatar_poet.png'
         },
         content: '今天在大悦城排队三小时终于拿到了研磨限定立牌！顺便求助一下，有没有同好主吃日向和影山想换研磨/黑尾的？我手头多了一个研磨立牌，可面交或挂闲鱼。',
         createdAt: '2026-05-22 14:32',
         images: [
-          'https://images.unsplash.com/photo-1541562232579-512a21360020?auto=format&fit=crop&w=300&q=80',
-          'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=300&q=80'
+          '/cover_sakura.png',
+          '/cover_sky.png'
         ],
         likeCount: 42,
         commentCount: 8,
@@ -467,12 +557,12 @@ export function AppProvider({ children }) {
         circleId: 'cir-002',
         author: {
           name: '提瓦特头号吟游诗人',
-          avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&h=100&q=80'
+          avatar: '/avatar_poet.png'
         },
         content: '原神FES入场券终于抢到了！有第一天（8月12号）一起结伴去博览馆排队刷任务的小伙伴吗？我是温迪单推人，现场打算COS温迪，招募同伴！',
         createdAt: '2026-05-22 11:20',
         images: [
-          'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=300&q=80'
+          '/cover_sky.png'
         ],
         likeCount: 65,
         commentCount: 12,
@@ -566,9 +656,9 @@ export function AppProvider({ children }) {
       time: '18:12',
       unread: 1,
       chatHistory: [
-        { sender: '猫又教研组长', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&h=100&q=80', content: '欢迎加入本群！我们明天14点大悦城9楼立牌下集合。', time: '16:00', isSystem: false },
-        { sender: '小黑猫_研磨', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&h=100&q=80', content: '收到，我带了研磨的拍立得和痛包。', time: '16:15', isSystem: false },
-        { sender: '猫又教研组长', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&h=100&q=80', content: '大家明天的面基痛包记得带齐哦！', time: '18:12', isSystem: false }
+        { sender: '猫又教研组长', avatar: '/avatar_neko.png', content: '欢迎加入本群！我们明天14点大悦城9楼立牌下集合。', time: '16:00', isSystem: false },
+        { sender: '小黑猫_研磨', avatar: '/avatar_neko.png', content: '收到，我带了研磨的拍立得和痛包。', time: '16:15', isSystem: false },
+        { sender: '猫又教研组长', avatar: '/avatar_neko.png', content: '大家明天的面基痛包记得带齐哦！', time: '18:12', isSystem: false }
       ]
     },
     {
@@ -587,6 +677,109 @@ export function AppProvider({ children }) {
   ]);
 
   const [unreadCount, setUnreadCount] = useState(1);
+
+  const [strangerMessages, setStrangerMessages] = useState([
+    {
+      id: 'str-001',
+      sender: '票务急售_小陈',
+      avatar: '/avatar_neko.png',
+      preview: 'CP30 内场票低价转，先加微信确认。',
+      time: '16:40',
+      countBeforeReply: 3,
+      riskLevel: 'warning',
+      blocked: false,
+      reported: false,
+      chatHistory: [
+        { sender: '票务急售_小陈', content: 'CP30 内场票低价转，先加微信确认。', time: '16:34', isSystem: false },
+        { sender: '系统', content: '安全提示：陌生人消息包含交易、联系方式等敏感内容，请谨慎核验。', time: '16:35', isSystem: true },
+        { sender: '票务急售_小陈', content: '只剩一张，先付定金我给你留。', time: '16:40', isSystem: false }
+      ]
+    },
+    {
+      id: 'str-002',
+      sender: '同城返图搭子',
+      avatar: '/avatar_cos.png',
+      preview: '看到你也想去美罗城市集，可以互拍吗？',
+      time: '昨天',
+      countBeforeReply: 1,
+      riskLevel: 'normal',
+      blocked: false,
+      reported: false,
+      chatHistory: [
+        { sender: '同城返图搭子', content: '看到你也想去美罗城市集，可以互拍吗？', time: '昨天', isSystem: false }
+      ]
+    }
+  ]);
+
+  const [blockedUsers, setBlockedUsers] = useState([]);
+  const [reportedRecords, setReportedRecords] = useState([]);
+
+  const visibleStrangerMessages = strangerMessages.filter(item => !item.blocked);
+
+  const shouldBlockSevereFraud = (text) => /保证金|刷流水|返利|解冻|银行卡|验证码|先转账|代付/.test(text);
+  const shouldWarnRisk = (text) => /微信|vx|电话|手机号|链接|http|定金|转账|私下/.test(text);
+
+  const sendStrangerReply = (threadId, text) => {
+    if (!text.trim()) return { ok: false, reason: '消息不能为空' };
+    if (shouldBlockSevereFraud(text)) {
+      return { ok: false, severe: true, reason: '严重涉诈话术已被拦截' };
+    }
+    if (/\.(jpg|png|mp4)|图片|视频|语音|http|微信|电话|手机号|vx/i.test(text)) {
+      return { ok: false, reason: '回复前仅允许发送纯文本，图片/视频/联系方式已拦截' };
+    }
+    setStrangerMessages(prev => prev.map(thread => {
+      if (thread.id !== threadId) return thread;
+      const warning = shouldWarnRisk(text)
+        ? [{ sender: '系统', content: '安全提示：消息包含联系方式或交易暗示，请勿脱离平台交易。', time: '刚刚', isSystem: true }]
+        : [];
+      return {
+        ...thread,
+        countBeforeReply: 0,
+        riskLevel: warning.length ? 'warning' : thread.riskLevel,
+        preview: text,
+        time: '刚刚',
+        chatHistory: [
+          ...thread.chatHistory,
+          { sender: user.name, content: text, time: '刚刚', isSystem: false },
+          ...warning
+        ]
+      };
+    }));
+    return { ok: true };
+  };
+
+  const deleteConversation = (chatId) => {
+    setMessages(prev => prev.filter(chat => chat.id !== chatId));
+  };
+
+  const deleteStrangerThread = (threadId) => {
+    setStrangerMessages(prev => prev.filter(thread => thread.id !== threadId));
+  };
+
+  const blockStranger = (threadId) => {
+    setStrangerMessages(prev => prev.map(thread => {
+      if (thread.id !== threadId) return thread;
+      setBlockedUsers(old => old.includes(thread.sender) ? old : [...old, thread.sender]);
+      return { ...thread, blocked: true };
+    }));
+  };
+
+  const reportStranger = (threadId, reason) => {
+    setStrangerMessages(prev => prev.map(thread => {
+      if (thread.id !== threadId) return thread;
+      setReportedRecords(old => [
+        {
+          id: `report-${Date.now()}`,
+          target: thread.sender,
+          reason,
+          evidenceCount: thread.chatHistory.length,
+          createdAt: '刚刚'
+        },
+        ...old
+      ]);
+      return { ...thread, reported: true };
+    }));
+  };
 
   // 申请加入拼团 (GRP-002)
   const applyJoinGroup = (groupId, messageText = '') => {
@@ -619,6 +812,7 @@ export function AppProvider({ children }) {
   // 团主审批申请 (通过/拒绝)
   const approveRequest = (groupId, requestId, isApproved) => {
     let approvedUser = null;
+    let targetGroupTitle = '';
     
     setGroups(prev => prev.map(g => {
       if (g.id === groupId) {
@@ -627,6 +821,7 @@ export function AppProvider({ children }) {
         
         const req = g.pendingRequests[reqIndex];
         approvedUser = { name: req.name, avatar: req.avatar };
+        targetGroupTitle = g.title;
         
         const newPending = g.pendingRequests.filter(r => r.id !== requestId);
         const newMembers = isApproved 
@@ -658,14 +853,41 @@ export function AppProvider({ children }) {
         }
         return chat;
       }));
+      setMessages(prev => prev.map(chat => chat.id === 'chat-sys'
+        ? {
+          ...chat,
+          lastMessage: `系统：${approvedUser.name} 的入团申请已通过。`,
+          time: '刚刚',
+          chatHistory: [
+            ...chat.chatHistory,
+            { sender: '系统', avatar: '', content: `【${targetGroupTitle}】申请已通过，${approvedUser.name} 已加入开团群。`, time: '刚刚', isSystem: true }
+          ]
+        }
+        : chat
+      ));
+    } else if (!isApproved && approvedUser) {
+      setMessages(prev => prev.map(chat => chat.id === 'chat-sys'
+        ? {
+          ...chat,
+          lastMessage: `系统：${approvedUser.name} 的入团申请已拒绝。`,
+          time: '刚刚',
+          chatHistory: [
+            ...chat.chatHistory,
+            { sender: '系统', avatar: '', content: `【${targetGroupTitle}】申请已拒绝，P0 原型不要求填写拒绝原因。`, time: '刚刚', isSystem: true }
+          ]
+        }
+        : chat
+      ));
     }
   };
 
   // 创建开团 (MAP-030 / GRP-001)
-  const createGroup = (activityId, title, price, totalLimit, addressSummary, addressDetail, tag) => {
+  const createGroup = (activityId, title, price, totalLimit, addressSummary, addressDetail, tag, options = {}) => {
+    let createdGroupId = null;
     checkLogin(() => {
+      const timestamp = Date.now();
       const newGroup = {
-        id: `grp-${Date.now()}`,
+        id: `grp-${timestamp}`,
         title,
         type: tag === '约人面基' ? 'visit' : tag === '周边合购' ? 'exchange' : 'dinner',
         relatedActivityId: activityId,
@@ -674,13 +896,15 @@ export function AppProvider({ children }) {
         meetingAddressDetail: addressDetail,
         lat: 31.2 + (Math.random() - 0.5) * 0.08, // 随机在该市活动中心附近
         lng: 121.4 + (Math.random() - 0.5) * 0.08,
-        startTime: new Date(Date.now() + 86400000).toISOString(), // 默认明天
+        startTime: options.meetingTime || new Date(Date.now() + 86400000).toISOString(),
         maxMembers: parseInt(totalLimit, 10) || 5,
         currentMembers: 1,
         price: price === '0' || !price ? 'AA制' : `AA制人均 ¥${price}`,
         status: 'recruiting',
-        requirementSummary: '有兴趣同人创作和吃谷的小伙伴速来！',
-        locationVisibleRule: 'after_join',
+        requirementSummary: options.requirementSummary || '有兴趣同人创作和吃谷的小伙伴速来！',
+        description: options.description || '团主暂未填写详细说明。',
+        locationVisibleRule: options.locationVisibleRule || 'after_join',
+        conversationId: `chat-${timestamp}`,
         creator: {
           name: user.name,
           avatar: user.avatar
@@ -691,11 +915,12 @@ export function AppProvider({ children }) {
         pendingRequests: []
       };
 
+      createdGroupId = newGroup.id;
       setGroups(prev => [newGroup, ...prev]);
 
       // 同时自动创建对应的拼团群聊 (PRD GRP-004联动)
       const newChat = {
-        id: `chat-${Date.now()}`,
+        id: newGroup.conversationId,
         title: `${title} 拼团群`,
         isGroup: true,
         relatedGroupId: newGroup.id,
@@ -709,6 +934,138 @@ export function AppProvider({ children }) {
       };
       setMessages(prev => [newChat, ...prev]);
     });
+    return createdGroupId;
+  };
+
+  const withdrawGroupApplication = (groupId) => {
+    setGroups(prev => prev.map(group => {
+      if (group.id !== groupId || !user) return group;
+      const pending = group.pendingRequests.find(req => req.name === user.name);
+      if (!pending) return group;
+      return {
+        ...group,
+        pendingRequests: group.pendingRequests.filter(req => req.name !== user.name),
+        applicationHistory: [
+          ...(group.applicationHistory || []),
+          { ...pending, status: 'withdrawn', updatedAt: '刚刚' }
+        ]
+      };
+    }));
+  };
+
+  const exitGroup = (groupId) => {
+    if (!user) return;
+    let exitedName = user.name;
+    setGroups(prev => prev.map(group => {
+      if (group.id !== groupId || group.creator.name === user.name) return group;
+      const isMember = group.members.some(member => member.name === user.name);
+      if (!isMember) return group;
+      const nextMembers = group.members.filter(member => member.name !== user.name);
+      return {
+        ...group,
+        members: nextMembers,
+        currentMembers: nextMembers.length,
+        status: group.status === 'full' ? 'recruiting' : group.status,
+        memberHistory: [
+          ...(group.memberHistory || []),
+          { name: user.name, status: 'exited', updatedAt: '刚刚' }
+        ]
+      };
+    }));
+    setMessages(prev => prev.map(chat => chat.relatedGroupId === groupId
+      ? {
+        ...chat,
+        chatHistory: [
+          ...chat.chatHistory,
+          { sender: '系统', avatar: '', content: `${exitedName} 已退出开团，完整集合地点权限已关闭。`, time: '刚刚', isSystem: true }
+        ]
+      }
+      : chat
+    ));
+  };
+
+  const cancelGroup = (groupId) => {
+    let groupTitle = '';
+    setGroups(prev => prev.map(group => {
+      if (group.id !== groupId || !user || group.creator.name !== user.name) return group;
+      groupTitle = group.title;
+      return {
+        ...group,
+        status: 'cancelled',
+        pendingRequests: [],
+        applicationHistory: [
+          ...(group.applicationHistory || []),
+          ...group.pendingRequests.map(req => ({ ...req, status: 'cancelled', updatedAt: '刚刚' }))
+        ]
+      };
+    }));
+    setMessages(prev => prev.map(chat => {
+      if (chat.relatedGroupId === groupId) {
+        return {
+          ...chat,
+          lastMessage: `系统：${groupTitle || '开团'} 已取消。`,
+          time: '刚刚',
+          chatHistory: [
+            ...chat.chatHistory,
+            { sender: '系统', avatar: '', content: `团主已取消【${groupTitle || '本开团'}】。开团群保留，原成员仍可继续沟通后续安排。`, time: '刚刚', isSystem: true }
+          ]
+        };
+      }
+      if (chat.id === 'chat-sys') {
+        return {
+          ...chat,
+          lastMessage: `系统：${groupTitle || '开团'} 已取消。`,
+          time: '刚刚',
+          chatHistory: [
+            ...chat.chatHistory,
+            { sender: '系统', avatar: '', content: `【${groupTitle || '开团'}】已取消，所有待审核申请已转为 cancelled。`, time: '刚刚', isSystem: true }
+          ]
+        };
+      }
+      return chat;
+    }));
+  };
+
+  const removeGroupMember = (groupId, memberName) => {
+    setGroups(prev => prev.map(group => {
+      if (group.id !== groupId || !user || group.creator.name !== user.name || memberName === group.creator.name) return group;
+      const target = group.members.find(member => member.name === memberName);
+      if (!target) return group;
+      const nextMembers = group.members.filter(member => member.name !== memberName);
+      return {
+        ...group,
+        members: nextMembers,
+        currentMembers: nextMembers.length,
+        status: group.status === 'full' ? 'recruiting' : group.status,
+        memberHistory: [
+          ...(group.memberHistory || []),
+          { ...target, status: 'exited', removedByOwner: true, updatedAt: '刚刚' }
+        ]
+      };
+    }));
+    setMessages(prev => prev.map(chat => chat.relatedGroupId === groupId
+      ? {
+        ...chat,
+        chatHistory: [
+          ...chat.chatHistory,
+          { sender: '系统', avatar: '', content: `${memberName} 已被团主移出开团群，地点和进群权限已关闭。`, time: '刚刚', isSystem: true }
+        ]
+      }
+      : chat
+    ));
+  };
+
+  const requestAccountCancellation = () => {
+    const activeOwnedGroup = groups.find(group => user && group.creator.name === user.name && ['recruiting', 'full'].includes(group.status));
+    if (activeOwnedGroup) {
+      return { ok: false, reason: `仍有未完成拼团【${activeOwnedGroup.title}】，需取消或完成后再注销。` };
+    }
+    setAccountCancellation({
+      requestedAt: '刚刚',
+      freezeDays: 30,
+      status: 'cooling'
+    });
+    return { ok: true };
   };
 
   // 发送消息
@@ -738,6 +1095,17 @@ export function AppProvider({ children }) {
       setShowLoginModal,
       handleLoginSuccess,
       handleLogout,
+      socialProfiles,
+      toggleFollowUser,
+      accountBindings,
+      privacySettings,
+      notificationSettings,
+      accountCancellation,
+      updatePrivacySetting,
+      updateNotificationSetting,
+      rebindPhone,
+      toggleThirdPartyBinding,
+      requestAccountCancellation,
       
       routeStack,
       pushRoute,
@@ -767,9 +1135,21 @@ export function AppProvider({ children }) {
       messages,
       unreadCount,
       setUnreadCount,
+      visibleStrangerMessages,
+      blockedUsers,
+      reportedRecords,
+      sendStrangerReply,
+      deleteConversation,
+      deleteStrangerThread,
+      blockStranger,
+      reportStranger,
       applyJoinGroup,
       approveRequest,
       createGroup,
+      withdrawGroupApplication,
+      exitGroup,
+      cancelGroup,
+      removeGroupMember,
       sendMessage,
 
       showGlobalPublishSheet,

@@ -1,34 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+SC:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&family=Outfit:wght@300;400;600;800&family=Noto+Sans+SC:wght@300;400;700&display=swap');
 
 :root {
-  /* Morandi Color Palette */
-  --m-bg-canvas: #F6F5F2;          /* 燕麦暖白 */
-  --m-bg-card: rgba(255, 255, 255, 0.88); /* 半透明暖白 */
-  --m-map-base: #EAEBE9;          /* 地图底图浅灰泥 */
-  --m-map-green: #D2DCD0;         /* 地图绿植/公园区 */
-  --m-map-road: #FFFFFF;          /* 地图道路 */
+  --m-bg-canvas: #fcf8ff;
+  --m-bg-canvas-alt: #fff3f8;
+  --m-bg-card: #FCFAF7;
+  --m-map-base: #f9f6f0;          
+  --m-map-green: #e6f3eb;         
+  --m-map-road: #ffffff;          
   
-  --m-primary: #E5A9A9;           /* 灰蜜桃粉 */
-  --m-primary-hover: #DB9999;     /* 灰蜜桃粉深色 */
-  --m-primary-light: rgba(229, 169, 169, 0.12); /* 浅蜜桃粉 */
+  --m-primary: #9c7fbd;           /* 薰衣草紫 */
+  --m-primary-hover: #8d71af;     
+  --m-primary-light: #faf5ff;     
   
-  --m-secondary: #A8BDD1;         /* 烟雨蓝 */
-  --m-secondary-light: rgba(168, 189, 209, 0.12);
+  --m-secondary: #f4b4ce;         /* 樱花粉 */
+  --m-secondary-light: #fdf2f8;
   
-  --m-sage: #A3BCA9;              /* 鼠尾草绿 */
-  --m-sage-light: rgba(163, 188, 169, 0.12);
+  --m-sage: #a2d7c7;              /* 薄荷绿 */
+  --m-sage-light: #f0fdf4;
   
-  --m-slate: #B0B7BD;             /* 石板灰 */
-  --m-slate-light: rgba(176, 183, 189, 0.12);
+  --m-slate: #a3c9e8;             /* 天空蓝 */
+  --m-slate-light: #eff6ff;
 
-  --m-text-main: #2D3238;         /* 深炭灰 */
-  --m-text-sub: #7A818A;          /* 中性烟灰 */
-  --m-text-muted: #A3AAB2;        /* 极浅灰 */
+  --m-text-main: #4a3e56;         /* 紫褐深字 */
+  --m-text-sub: #6d5c7c;          
+  --m-text-muted: #8a7e96;        
   
-  --m-border: rgba(226, 229, 232, 0.6); /* 半透明浅白灰 */
-  --m-shadow-sm: 0 4px 12px rgba(45, 50, 56, 0.03);
-  --m-shadow-md: 0 8px 24px rgba(229, 169, 169, 0.06);
-  --m-shadow-lg: 0 16px 40px rgba(45, 50, 56, 0.08);
+  --m-border: #4a3e56;            /* 手绘粗边框 */
+  --border-color: #4a3e56;
+  --border-width: 2.5px;
+  --shadow-offset: 4px;
+
+  --m-shadow-sm: 2px 2px 0px #4a3e56;
+  --m-shadow-md: 4px 4px 0px #4a3e56;
+  --m-shadow-lg: 6px 6px 0px #4a3e56;
 }
 
 * {
@@ -38,7 +42,7 @@
 }
 
 body {
-  font-family: 'Outfit', 'Noto Sans SC', sans-serif;
+  font-family: 'Outfit', 'Comfortaa', 'Noto Sans SC', sans-serif;
   background-color: #0d0d12;
   color: var(--m-text-main);
   overflow: hidden;
@@ -54,14 +58,14 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(122, 129, 138, 0.15);
+  background: rgba(74, 62, 86, 0.2);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(122, 129, 138, 0.3);
+  background: rgba(74, 62, 86, 0.4);
 }
 
-/* Animations */
+/* 渐变浮现动画 */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
@@ -72,116 +76,125 @@ body {
   to { transform: translateY(0); }
 }
 
-@keyframes pulseRing {
-  0% { transform: scale(0.95); opacity: 0.6; }
-  50% { transform: scale(1.15); opacity: 0.15; }
-  100% { transform: scale(1.3); opacity: 0; }
-}
-
 .animate-fade-in {
-  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.25s ease-out forwards;
 }
 
 .animate-slide-up {
-  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slideUp 0.3s cubic-bezier(0.1, 0.76, 0.55, 0.94) forwards;
 }
 
-/* Micro-interaction classes */
+/* 按钮微交互按压 */
 .interactive-scale {
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.15s ease;
+}
+.interactive-scale:hover {
+  transform: translate(-1px, -1px);
 }
 .interactive-scale:active {
-  transform: scale(0.97);
+  transform: translate(1px, 1px) scale(0.97);
 }
 
-/* Common Layout Utilities */
+/* 手机模拟画布容器 (Dot-grid 点阵底面) */
 .app-container {
   width: 100%;
   height: 100%;
   background-color: var(--m-bg-canvas);
+  background-image: radial-gradient(#e2d5f0 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
 }
 
-/* Card glassmorphism */
+/* 手账卡片 (重构 Glassmorphism) */
 .glass-panel {
-  background: var(--m-bg-card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--m-border);
-  box-shadow: var(--m-shadow-md);
+  background: var(--m-bg-card) !important;
+  border: 1px solid #EEEEEE !important;
+  box-shadow: none !important;
+  border-radius: 12px !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
-/* Pin Badges */
+.glass-panel:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.glass-panel:active {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* 手账 Badge / Pill */
 .badge {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 3px 8px;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
-  border: 1px solid transparent;
+  border: 1px solid var(--m-border) !important;
 }
 
 .badge-peach {
-  background-color: var(--m-primary-light);
-  color: #B56767;
-  border-color: rgba(229, 169, 169, 0.3);
+  background-color: var(--m-secondary-light) !important;
+  color: #c94b7c !important;
 }
 
 .badge-blue {
-  background-color: var(--m-secondary-light);
-  color: #557591;
-  border-color: rgba(168, 189, 209, 0.3);
+  background-color: var(--m-slate-light) !important;
+  color: #3b7bb5 !important;
 }
 
 .badge-sage {
-  background-color: var(--m-sage-light);
-  color: #5B7A63;
-  border-color: rgba(163, 188, 169, 0.3);
+  background-color: var(--m-sage-light) !important;
+  color: #2b8b60 !important;
 }
 
 .badge-slate {
-  background-color: var(--m-slate-light);
-  color: #6C747C;
-  border-color: rgba(176, 183, 189, 0.3);
+  background-color: var(--m-primary-light) !important;
+  color: var(--m-primary) !important;
 }
 
-/* Buttons */
+/* 手账拟物按钮 */
 .btn-round {
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
-  border: none;
-  font-weight: 600;
+  border: var(--border-width) solid var(--m-border) !important;
+  font-weight: 700;
   cursor: pointer;
   outline: none;
-  transition: all 0.2s ease;
+  box-shadow: var(--m-shadow-sm) !important;
+  transition: all 0.12s ease;
+  padding: 8px 16px;
+}
+
+.btn-round:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px var(--m-border) !important;
+}
+
+.btn-round:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px var(--m-border) !important;
 }
 
 .btn-primary {
-  background-color: var(--m-primary);
-  color: #FFFFFF;
-  box-shadow: 0 4px 12px rgba(229, 169, 169, 0.2);
-}
-.btn-primary:hover {
-  background-color: var(--m-primary-hover);
+  background-color: var(--m-primary) !important;
+  color: #FFFFFF !important;
 }
 
 .btn-secondary {
-  background-color: #FFFFFF;
-  color: var(--m-text-main);
-  border: 1px solid var(--m-border);
-  box-shadow: var(--m-shadow-sm);
-}
-.btn-secondary:hover {
-  background-color: var(--m-bg-canvas);
+  background-color: #FFFFFF !important;
+  color: var(--m-text-main) !important;
 }
 
-/* Custom interactive map elements */
+/* 地图底版手写设计风格 */
 .map-canvas-container {
   width: 100%;
   height: 100%;
@@ -191,7 +204,7 @@ body {
   user-select: none;
 }
 
-/* Floating overlay panels */
+/* 顶部浮动搜索与过滤行 */
 .floating-overlay-top {
   position: absolute;
   top: 12px;
@@ -205,12 +218,15 @@ body {
 
 .floating-search-bar {
   width: 100%;
-  height: 38px;
-  border-radius: 9999px;
+  height: 40px;
+  border-radius: 14px !important;
   padding: 0 14px;
   display: flex;
   align-items: center;
   gap: 8px;
+  background-color: #ffffff !important;
+  border: var(--border-width) solid var(--m-border) !important;
+  box-shadow: var(--m-shadow-sm) !important;
 }
 
 .floating-search-input {
@@ -218,7 +234,8 @@ body {
   background: transparent;
   border: none;
   outline: none;
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--m-text-main);
 }
 .floating-search-input::placeholder {
@@ -236,31 +253,32 @@ body {
 }
 
 .filter-item {
-  padding: 5px 12px;
-  border-radius: 9999px;
-  font-size: 10px;
+  padding: 6px 14px;
+  border-radius: 10px !important;
+  font-size: 11px;
   font-weight: 700;
-  border: 1px solid var(--m-border);
-  background: var(--m-bg-card);
-  color: var(--m-text-sub);
+  border: var(--border-width) solid var(--m-border) !important;
+  background: #ffffff !important;
+  color: var(--m-text-sub) !important;
   white-space: nowrap;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  box-shadow: 2px 2px 0px var(--m-border) !important;
 }
 
 .filter-item.active {
-  background: var(--m-primary);
-  color: #FFFFFF;
-  border-color: var(--m-primary);
-  box-shadow: 0 3px 8px rgba(229, 169, 169, 0.15);
+  background: var(--m-primary) !important;
+  color: #FFFFFF !important;
+  box-shadow: 1px 1px 0px var(--m-border) !important;
+  transform: translate(1px, 1px);
 }
 
-/* Bottom Tabbar */
+/* 底部 Tabbar */
 .bottom-tabbar {
-  height: 56px;
+  height: 58px;
   width: 100%;
-  background: #FFFFFF;
-  border-top: 1px solid var(--m-border);
+  background: #fff5f8 !important;
+  border-top: 1px solid #EEEEEE !important;
   display: flex;
   align-items: center;
   justify-content: space-around;
@@ -277,93 +295,130 @@ body {
   border: none;
   outline: none;
   cursor: pointer;
-  color: var(--m-text-sub);
-  transition: all 0.2s ease;
+  color: var(--m-text-muted) !important;
+  transition: all 0.15s ease;
   width: 50px;
 }
 
 .tab-btn.active {
-  color: var(--m-primary);
-  transform: scale(1.05);
+  color: var(--m-primary) !important;
+  transform: scale(1.03) translateY(-1px);
 }
 
 .tab-btn span {
   font-size: 9px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .tab-btn-icon {
-  width: 18px;
-  height: 18px;
-  stroke-width: 2.2;
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.5;
 }
 
-/* Drawer / Slide up summary panel */
+/* 抽屉卡片 */
 .bottom-summary-drawer {
   position: absolute;
-  bottom: 60px;
+  bottom: 70px;
   left: 12px;
   right: 12px;
   border-radius: 20px;
-  padding: 12px;
+  padding: 14px;
   z-index: 35;
 }
 
-/* Mock Map Roads and Park layouts */
+/* 手账地图背景元素样式 */
 .map-lake {
-  background-color: #CADCE6;
+  background-color: var(--m-slate) !important;
+  border: 1.5px solid var(--m-border) !important;
   border-radius: 50%;
   position: absolute;
 }
 .map-park {
-  background-color: var(--m-map-green);
-  border-radius: 8px;
+  background-color: var(--m-map-green) !important;
+  border: 1.5px solid var(--m-border) !important;
+  border-radius: 12px !important;
   position: absolute;
 }
 .map-road {
   background-color: var(--m-map-road);
+  border: 1px solid rgba(74, 62, 86, 0.15);
   position: absolute;
 }
 
+/* 和纸胶带修饰类 (带锯齿切口感) */
+.washi-tape-top {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%) rotate(2deg);
+  width: 100px;
+  height: 22px;
+  background-color: rgba(248, 223, 147, 0.85);
+  border: 1.5px dashed rgba(234, 179, 8, 0.6);
+  z-index: 100;
+  box-shadow: 1px 1px 2px rgba(0,0,0,0.05);
+}
 
-/* Helper Utilities */
-.w-full {
+/* 拟物弹窗叠加层 */
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-}
-.h-full {
   height: 100%;
-}
-.flex {
+  background-color: rgba(74, 62, 86, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 500;
   display: flex;
-}
-.flex-col {
-  flex-direction: column;
-}
-.flex-row {
-  flex-direction: row;
-}
-.flex-1 {
-  flex: 1;
-}
-.items-center {
   align-items: center;
-}
-.justify-between {
-  justify-content: space-between;
-}
-.justify-center {
   justify-content: center;
-}
-.relative {
-  position: relative;
-}
-.absolute {
-  position: absolute;
-}
-.overflow-hidden {
-  overflow: hidden;
-}
-.overflow-y-auto {
-  overflow-y: auto;
+  padding: 20px;
 }
 
+.modal-card {
+  width: 100%;
+  max-width: 310px;
+  background-color: #ffeef2;
+  border: var(--border-width) solid var(--m-border);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: var(--m-shadow-md);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+/* UI 细节修饰 (React 各子视图中用到 input, select, textarea) */
+input.input-field, select.input-field, textarea.input-field {
+  width: 100%;
+  padding: 10px 14px;
+  border: var(--border-width) solid var(--m-border);
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--m-text-main);
+  background-color: #ffffff;
+  outline: none;
+  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.05);
+  margin-top: 4px;
+}
+input.input-field:focus, select.input-field:focus, textarea.input-field:focus {
+  border-color: var(--m-primary);
+  background-color: #fdfbff;
+}
+
+/* 粒子点赞散射微特效 */
+.sakura-particle {
+  position: absolute;
+  pointer-events: none;
+  font-size: 16px;
+  animation: sakura-float 0.8s forwards ease-out;
+  z-index: 1000;
+}
+@keyframes sakura-float {
+  0% { transform: translate(0, 0) scale(0.5) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(1.2) rotate(var(--rot)); opacity: 0; }
+}

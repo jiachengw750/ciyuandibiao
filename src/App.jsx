@@ -1,12 +1,13 @@
-import React from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import PhoneShell from './components/PhoneShell';
 import TesterPanel from './components/TesterPanel';
+import { ReqAnnotationProvider } from './components/ReqAnnotation';
 
 // Pages
 import ActivityListPage from './pages/ActivityListPage';
 import ActivityDetailPage from './pages/ActivityDetailPage';
 import GroupDetailPage from './pages/GroupDetailPage';
+import GroupApprovePage from './pages/GroupApprovePage';
 import CreateGroupPage from './pages/CreateGroupPage';
 import CircleHomepage from './pages/CircleHomepage';
 import CircleDetailPage from './pages/CircleDetailPage';
@@ -14,7 +15,9 @@ import PostDetailPage from './pages/PostDetailPage';
 import CreatePostPage from './pages/CreatePostPage';
 import MessagePage from './pages/MessagePage';
 import ChatWindowPage from './pages/ChatWindowPage';
+import StrangerChatPage from './pages/StrangerChatPage';
 import ProfilePage from './pages/ProfilePage';
+import SocialListPage from './pages/SocialListPage';
 
 function AppContent() {
   const { routeStack } = useApp();
@@ -30,6 +33,8 @@ function AppContent() {
         return <ActivityDetailPage />;
       case 'group-detail':
         return <GroupDetailPage />;
+      case 'group-approve':
+        return <GroupApprovePage />;
       case 'create-group':
         return <CreateGroupPage />;
       case 'circles':
@@ -44,8 +49,12 @@ function AppContent() {
         return <MessagePage />;
       case 'chat-window':
         return <ChatWindowPage />;
+      case 'stranger-chat':
+        return <StrangerChatPage />;
       case 'profile':
         return <ProfilePage />;
+      case 'social-list':
+        return <SocialListPage />;
       default:
         return <CircleHomepage />;
     }
@@ -57,8 +66,9 @@ function AppContent() {
         display: 'flex',
         width: '100vw',
         height: '100vh',
-        backgroundColor: '#09090C',
-        backgroundImage: 'radial-gradient(circle at 20% 30%, #2A1F2D 0%, #09090C 70%)',
+        backgroundColor: '#f6faf5',
+        backgroundImage: 'radial-gradient(#e2d5f0 1.5px, transparent 1.5px)',
+        backgroundSize: '20px 20px',
         overflow: 'hidden'
       }}
     >
@@ -95,7 +105,9 @@ function AppContent() {
 export default function App() {
   return (
     <AppProvider>
-      <AppContent />
+      <ReqAnnotationProvider>
+        <AppContent />
+      </ReqAnnotationProvider>
     </AppProvider>
   );
 }

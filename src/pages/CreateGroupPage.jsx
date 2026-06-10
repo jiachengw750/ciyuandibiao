@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { ArrowLeft, Sparkles, MapPin, DollarSign, Users, Send } from 'lucide-react';
+import { MapPin, DollarSign, Users, Send } from 'lucide-react';
+import { ReqBadge } from '../components/ReqAnnotation';
 
 export default function CreateGroupPage() {
-  const { routeStack, activities, createGroup, popRoute } = useApp();
+  const { routeStack, activities, createGroup, popRoute, pushRoute } = useApp();
 
   // 获取当前关联活动 ID
   const currentRoute = routeStack[routeStack.length - 1];
@@ -19,28 +20,55 @@ export default function CreateGroupPage() {
   const [addressSummary, setAddressSummary] = useState('');
   const [addressDetail, setAddressDetail] = useState('');
   const [tag, setTag] = useState('约人面基');
+  const [meetingTime, setMeetingTime] = useState(() => {
+    const tomorrow = new Date(Date.now() + 86400000);
+    tomorrow.setMinutes(0, 0, 0);
+    return tomorrow.toISOString().slice(0, 16);
+  });
+  const [description, setDescription] = useState('');
+  const [requirementSummary, setRequirementSummary] = useState('');
+  const [locationVisibleRule, setLocationVisibleRule] = useState('after_join');
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!title.trim() || !addressSummary.trim() || !addressDetail.trim()) {
+    if (!title.trim() || !meetingTime || !addressSummary.trim() || !addressDetail.trim() || !requirementSummary.trim()) {
       alert('请将表单核心项目填写完整！');
       return;
     }
 
+    if (['ended', 'cancelled', 'removed'].includes(activity.status)) {
+      alert('已结束、已取消或已下架的活动不可创建开团。');
+      return;
+    }
+
+    if (activity.status === 'ongoing' && !confirm('当前活动正在进行中，请确认集合时间仍然可执行。')) {
+      return;
+    }
+
     // 创建开团
-    createGroup(
+    const createdGroupId = createGroup(
       activityId,
       title,
       price,
       totalLimit,
       addressSummary,
       addressDetail,
-      tag
+      tag,
+      {
+        meetingTime: new Date(meetingTime).toISOString(),
+        description,
+        requirementSummary,
+        locationVisibleRule
+      }
     );
 
     alert('发起拼团成功！已经自动为您创建开团群聊。');
-    popRoute(); // 返回活动详情
+    if (createdGroupId) {
+      pushRoute('group-detail', { groupId: createdGroupId }, 'create_group');
+    } else {
+      popRoute();
+    }
   };
 
   if (!activity) {
@@ -65,7 +93,10 @@ export default function CreateGroupPage() {
             style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
           />
           <div style={{ minWidth: 0, flex: 1 }}>
-            <span style={{ fontSize: '8px', fontWeight: 800, color: 'var(--m-primary)', display: 'block' }}>您正在为以下活动发起面基拼团：</span>
+            <span style={{ fontSize: '8px', fontWeight: 800, color: 'var(--m-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span>您正在为以下活动发起面基拼团：</span>
+              <ReqBadge id="GRP-CREATE" style={{ position: 'relative', top: '-1px' }} />
+            </span>
             <h4 style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
               {activity.title}
             </h4>
@@ -73,7 +104,8 @@ export default function CreateGroupPage() {
         </div>
 
         {/* 核心信息填写 */}
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '14px', border: '1px solid var(--m-border)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '14px', border: '1px solid var(--m-border)', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative' }}>
+          <ReqBadge id="GRP-CREATE" style={{ top: '-6px', right: '-6px' }} />
           
           {/* 标题 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -177,10 +209,75 @@ export default function CreateGroupPage() {
             </div>
           </div>
 
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)' }}>3. 集合时间 (必填)</label>
+            <input
+              type="datetime-local"
+              value={meetingTime}
+              onChange={(e) => setMeetingTime(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                height: '32px',
+                backgroundColor: '#F8F9FA',
+                border: '1px solid var(--m-border)',
+                borderRadius: '8px',
+                padding: '0 10px',
+                fontSize: '9.5px',
+                color: 'var(--m-text-main)',
+                outline: 'none'
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)' }}>4. 加入要求 (必填)</label>
+            <textarea
+              rows="3"
+              placeholder="例如：主吃排少/原神，需遵守现场秩序，不接受黄牛转票。"
+              value={requirementSummary}
+              onChange={(e) => setRequirementSummary(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                backgroundColor: '#F8F9FA',
+                border: '1px solid var(--m-border)',
+                borderRadius: '8px',
+                padding: '8px 10px',
+                fontSize: '9.5px',
+                color: 'var(--m-text-main)',
+                outline: 'none',
+                resize: 'none'
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)' }}>5. 详细说明</label>
+            <textarea
+              rows="3"
+              placeholder="补充行程安排、集合后行动路线、预算规则或注意事项。"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              style={{
+                width: '100%',
+                backgroundColor: '#F8F9FA',
+                border: '1px solid var(--m-border)',
+                borderRadius: '8px',
+                padding: '8px 10px',
+                fontSize: '9.5px',
+                color: 'var(--m-text-main)',
+                outline: 'none',
+                resize: 'none'
+              }}
+            />
+          </div>
+
         </div>
 
         {/* 集合地址 */}
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '14px', border: '1px solid var(--m-border)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '14px', border: '1px solid var(--m-border)', display: 'flex', flexDirection: 'column', gap: '10px', position: 'relative' }}>
+          <ReqBadge id="GRP-CREATE" style={{ top: '-6px', right: '-6px' }} />
           
           {/* 大致区域 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -233,6 +330,34 @@ export default function CreateGroupPage() {
             />
           </div>
 
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)' }}>
+              精准地点可见规则
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+              {[
+                { key: 'after_join', label: '审核通过后可见' },
+                { key: 'after_start', label: '开团前公开' }
+              ].map(rule => (
+                <button
+                  key={rule.key}
+                  type="button"
+                  onClick={() => setLocationVisibleRule(rule.key)}
+                  className={`filter-item ${locationVisibleRule === rule.key ? 'active' : ''}`}
+                  style={{
+                    padding: '6px 0',
+                    fontSize: '8.5px',
+                    textAlign: 'center',
+                    justifyContent: 'center',
+                    display: 'flex'
+                  }}
+                >
+                  {rule.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
         </div>
 
       </form>
@@ -274,11 +399,13 @@ export default function CreateGroupPage() {
           style={{
             padding: '8px 20px',
             fontSize: '10px',
-            gap: '4px'
+            gap: '4px',
+            position: 'relative'
           }}
         >
           <Send size={11} />
           <span>确认发起拼团</span>
+          <ReqBadge id="GRP-CREATE" style={{ top: '-10px', right: '-10px' }} />
         </button>
       </div>
 

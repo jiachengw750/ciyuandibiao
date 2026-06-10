@@ -1,22 +1,47 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { ChevronRight, MessageSquare, Bell, Heart, UserPlus, ArrowLeft } from 'lucide-react';
+import { MessageSquare, Bell, Heart, UserPlus, ArrowLeft, ShieldAlert, Trash2, Ban, Flag } from 'lucide-react';
+import { ReqBadge } from '../components/ReqAnnotation';
 
 export default function MessagePage() {
-  const { messages, pushRoute } = useApp();
-  
+  const {
+    messages,
+    pushRoute,
+    visibleStrangerMessages,
+    deleteConversation,
+    deleteStrangerThread,
+    blockStranger,
+    reportStranger,
+    groups,
+    user
+  } = useApp();
+
   // 用于控制当前展现哪一类通知详情的二级状态：null (主列表) | 'system' | 'likes' | 'followers' | 'comments'
   const [activeNotificationType, setActiveNotificationType] = useState(null);
+  const [showStrangers, setShowStrangers] = useState(false);
 
   // 1. 过滤底部的聊天会话：排除系统通知账号，保留纯粹的群聊与私聊
   const chatConversations = messages.filter(chat => chat.id !== 'chat-sys');
 
   // 2. 模拟的高保真、零 Emoji 二次元交互通知数据
+  // 动态合并：如果登录用户有自己发起的团且有待审核申请，则自动新增为系统审核通知项
+  const creatorGroupsWithRequests = groups ? groups.filter(g => g.creator?.name === user?.name && g.pendingRequests?.length > 0) : [];
+  const dynamicSystemNotifications = [
+    ...creatorGroupsWithRequests.flatMap(g => 
+      g.pendingRequests.map(req => ({
+        id: `sys-req-${g.id}-${req.id}`,
+        title: '入团加入申请审核',
+        content: `用户【${req.name}】申请加入您发起的拼团【${g.title}】，留言：“${req.message || '无'}”。点击前往审核。`,
+        time: '刚刚',
+        groupId: g.id
+      }))
+    ),
+    { id: 'sys-1', title: '拼团审核通知', content: '您发起的【CP30同人谷子交换拼摊】已被系统审核通过，地标已点亮上线。', time: '14:20' },
+    { id: 'sys-2', title: '入团申请通过', content: '您申请加入的【原神提瓦特Coser相册互拍团】已被团主通过。开团讨论组已为您自动激活。', time: '昨天' }
+  ];
+
   const mockNotifications = {
-    system: [
-      { id: 'sys-1', title: '拼团审核通知', content: '您发起的【CP30同人谷子交换拼摊】已被系统审核通过，地标已点亮上线。', time: '14:20' },
-      { id: 'sys-2', title: '入团申请通过', content: '您申请加入的【原神提瓦特Coser相册互拍团】已被团主通过。开团讨论组已为您自动激活。', time: '昨天' }
-    ],
+    system: dynamicSystemNotifications,
     likes: [
       { id: 'like-1', name: '冷酷松露酱', content: '赞了你的动态：今天在大悦城排队三小时终于拿到了限定立牌！', time: '15:40' },
       { id: 'like-2', name: '提瓦特头号吟游诗人', content: '收藏了你的动态：原神FES入场券抢占与交通避坑指南。', time: '昨天' }
@@ -42,37 +67,41 @@ export default function MessagePage() {
   };
 
   return (
-    <div className="w-full h-full bg-[#F6F5F2] flex flex-col select-none relative">
-      
+    <div className="w-full h-full flex flex-col select-none relative" style={{ backgroundColor: 'var(--m-bg-canvas)' }}>
+
       {/* 统一头部 */}
-      <div 
+      <div
         style={{
-          backgroundColor: '#FFFFFF',
+          backgroundColor: 'var(--m-bg-card)',
           padding: '12px 16px',
-          borderBottom: '1px solid var(--m-border)',
+          borderBottom: '1px solid #EEEEEE',
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
           flexShrink: 0
         }}
       >
-        {activeNotificationType && (
-          <button 
-            onClick={() => setActiveNotificationType(null)}
+	        {(activeNotificationType || showStrangers) && (
+	          <button
+	            onClick={() => {
+	              setActiveNotificationType(null);
+	              setShowStrangers(false);
+	            }}
             className="interactive-scale"
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
           >
             <ArrowLeft size={16} className="text-neutral-600" />
           </button>
         )}
-        
+
         <div style={{ flex: 1 }}>
-          <h1 style={{ fontSize: '13px', fontWeight: 800, color: 'var(--m-text-main)' }}>
-            {activeNotificationType ? getNotificationTitle() : '消息中心'}
+          <h1 style={{ fontSize: '13px', fontWeight: 800, color: 'var(--m-text-main)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>{showStrangers ? '陌生人消息' : activeNotificationType ? getNotificationTitle() : '消息中心'}</span>
+            <ReqBadge id={showStrangers ? 'MSG-RISK' : activeNotificationType ? 'MSG-NOTIF' : 'MSG-HOME'} style={{ position: 'relative', top: '-1px' }} />
           </h1>
         </div>
-        
-        {!activeNotificationType && (
+
+        {!activeNotificationType && !showStrangers && (
           <span style={{ fontSize: '8.5px', color: 'var(--m-text-muted)', fontWeight: 700 }}>
             即时交流与互动
           </span>
@@ -81,27 +110,109 @@ export default function MessagePage() {
 
       {/* 滚动内容区 */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '14px', paddingBottom: '60px' }}>
-        
-        {activeNotificationType ? (
+
+	        {showStrangers ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ padding: '10px 12px', borderRadius: '14px', backgroundColor: '#FFF8E7', border: '1px solid #F1D69A', color: '#8C6F3D', fontSize: '8.5px', lineHeight: '1.45', display: 'flex', gap: '8px' }}>
+              <ShieldAlert size={14} style={{ flexShrink: 0, marginTop: '1px' }} />
+              <span>陌生人回复前最多 3 条纯文本。含联系方式、链接、图片视频或严重涉诈话术会被限制或拦截。</span>
+            </div>
+
+            {visibleStrangerMessages.length > 0 ? (
+              visibleStrangerMessages.map(thread => (
+                <div key={thread.id} style={{ backgroundColor: 'var(--m-bg-card)', borderRadius: '12px', padding: '12px', border: '1px solid #EEEEEE', boxShadow: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div
+                    onClick={() => pushRoute('stranger-chat', { threadId: thread.id }, 'messages')}
+                    className="interactive-scale"
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+                  >
+                    <img src={thread.avatar} alt="avatar" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>{thread.sender}</span>
+                        <span style={{ fontSize: '7.5px', color: 'var(--m-text-muted)' }}>{thread.time}</span>
+                      </div>
+                      <p style={{ margin: '3px 0 0 0', fontSize: '8px', color: 'var(--m-text-sub)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{thread.preview}</p>
+                    </div>
+                    {thread.riskLevel === 'warning' && (
+                      <span style={{ fontSize: '7px', fontWeight: 800, color: '#8C6F3D', backgroundColor: '#FFF8E7', borderRadius: '9999px', padding: '2px 6px' }}>风险</span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                    <button
+                      onClick={() => {
+                        if (confirm('确定删除这条陌生人会话记录吗？')) deleteStrangerThread(thread.id);
+                      }}
+                      style={{ border: 'none', borderRadius: '9999px', padding: '6px 0', backgroundColor: '#F8F9FA', color: 'var(--m-text-sub)', fontSize: '8px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', cursor: 'pointer' }}
+                    >
+                      <Trash2 size={10} /> 删除
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm('拉黑后将拒收并隐藏对方消息，确定继续吗？')) blockStranger(thread.id);
+                      }}
+                      style={{ border: 'none', borderRadius: '9999px', padding: '6px 0', backgroundColor: 'var(--m-slate-light)', color: 'var(--m-text-sub)', fontSize: '8px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', cursor: 'pointer' }}
+                    >
+                      <Ban size={10} /> 拉黑
+                    </button>
+                    <button
+                      onClick={() => {
+                        const reason = prompt('请选择或输入举报类型：诈骗 / 骚扰 / 虚假信息', '诈骗');
+                        if (reason) reportStranger(thread.id, reason);
+                      }}
+                      style={{ border: 'none', borderRadius: '9999px', padding: '6px 0', backgroundColor: 'rgba(255,99,132,0.08)', color: '#FF6384', fontSize: '8px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', cursor: 'pointer' }}
+                    >
+                      <Flag size={10} /> 举报
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div style={{ padding: '30px', textAlign: 'center', backgroundColor: 'var(--m-bg-card)', borderRadius: '12px', border: '1px solid #EEEEEE', color: 'var(--m-text-muted)', fontSize: '9px' }}>
+                暂无未处理陌生人消息
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowStrangers(false)}
+              className="btn-round btn-secondary interactive-scale"
+              style={{ marginTop: '6px', fontSize: '9px', padding: '8px 0', justifyContent: 'center', display: 'flex' }}
+            >
+              返回聊天列表
+            </button>
+          </div>
+        ) : activeNotificationType ? (
           /* ============================================================== */
           /* 二级界面：展示具体的分类消息通知流 */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {mockNotifications[activeNotificationType].map(item => (
-              <div 
+              <div
                 key={item.id}
+                onClick={() => {
+                  if (item.groupId) {
+                    pushRoute('group-approve', { groupId: item.groupId }, 'messages');
+                  }
+                }}
+                className={item.groupId ? 'interactive-scale' : ''}
                 style={{
-                  backgroundColor: '#FFFFFF',
-                  borderRadius: '14px',
+                  backgroundColor: 'var(--m-bg-card)',
+                  borderRadius: '12px',
                   padding: '12px',
-                  border: 'none',
-                  boxShadow: 'var(--m-shadow-sm)',
+                  border: item.groupId ? '1.5px solid var(--m-primary)' : '1px solid #EEEEEE',
+                  boxShadow: 'none',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '4px'
+                  gap: '4px',
+                  cursor: item.groupId ? 'pointer' : 'default',
+                  position: 'relative'
                 }}
               >
+                {item.groupId && (
+                  <ReqBadge id="GRP-APPLY" style={{ position: 'absolute', top: '-6px', right: '-6px' }} />
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>
+                  <span style={{ fontSize: '9.5px', fontWeight: 800, color: item.groupId ? 'var(--m-primary)' : 'var(--m-text-main)' }}>
                     {item.name || item.title}
                   </span>
                   <span style={{ fontSize: '7.5px', color: 'var(--m-text-muted)' }}>
@@ -114,7 +225,7 @@ export default function MessagePage() {
               </div>
             ))}
 
-            <button 
+            <button
               onClick={() => setActiveNotificationType(null)}
               className="btn-round btn-secondary interactive-scale"
               style={{
@@ -123,27 +234,31 @@ export default function MessagePage() {
                 padding: '8px 0',
                 textAlign: 'center',
                 justifyContent: 'center',
-                display: 'flex'
+                display: 'flex',
+                position: 'relative'
               }}
             >
               返回聊天列表
+              <ReqBadge id="MSG-NOTIF" style={{ top: '-10px', right: '-10px' }} />
             </button>
           </div>
         ) : (
           /* ============================================================== */
           /* 主界面：顶部 4 类社交磁贴（去除白色背景大卡片，采用莫兰迪系柔和配色） */
           <>
-            <div 
+            <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(4, 1fr)',
                 gap: '12px',
                 padding: '8px 4px',
-                backgroundColor: 'transparent'
+                backgroundColor: 'transparent',
+                position: 'relative'
               }}
             >
+              <ReqBadge id="MSG-NOTIF" style={{ top: '-10px', right: '-10px' }} />
               {/* 系统消息 */}
-              <div 
+              <div
                 onClick={() => setActiveNotificationType('system')}
                 className="interactive-scale"
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
@@ -155,7 +270,7 @@ export default function MessagePage() {
               </div>
 
               {/* 赞与收藏 */}
-              <div 
+              <div
                 onClick={() => setActiveNotificationType('likes')}
                 className="interactive-scale"
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
@@ -167,7 +282,7 @@ export default function MessagePage() {
               </div>
 
               {/* 新增关注 */}
-              <div 
+              <div
                 onClick={() => setActiveNotificationType('followers')}
                 className="interactive-scale"
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
@@ -179,7 +294,7 @@ export default function MessagePage() {
               </div>
 
               {/* 评论与@ */}
-              <div 
+              <div
                 onClick={() => setActiveNotificationType('comments')}
                 className="interactive-scale"
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
@@ -194,19 +309,28 @@ export default function MessagePage() {
             {/* 2. 底部会话列表栏 - 重构为大厂通栏列表，去掉硬卡片框，设计重叠群头像 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: '4px' }}>
-                <h3 style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)' }}>
+                <h3 style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   聊天会话
+                  <ReqBadge id="MSG-HOME" style={{ position: 'relative', top: '-1px' }} />
+                  <ReqBadge id="MSG-RISK" style={{ position: 'relative', top: '-1px' }} />
                 </h3>
+                <button
+                  onClick={() => setShowStrangers(true)}
+                  style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--m-primary)', fontSize: '8px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}
+                >
+                  <ShieldAlert size={10} />
+                  陌生人 {visibleStrangerMessages.length}
+                </button>
               </div>
 
               {chatConversations.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#FFFFFF', borderRadius: '16px', overflow: 'hidden', boxShadow: 'var(--m-shadow-sm)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: 'var(--m-bg-card)', borderRadius: '12px', overflow: 'hidden', border: '1px solid #EEEEEE' }}>
                   {chatConversations.map((chat, index) => {
                     const hasUnread = chat.unread > 0;
                     return (
-                      <div 
-                        key={chat.id}
-                        onClick={() => pushRoute('chat-window', { chatId: chat.id }, 'messages')}
+	                      <div
+	                        key={chat.id}
+	                        onClick={() => pushRoute('chat-window', { chatId: chat.id }, 'messages')}
                         className="interactive-scale"
                         style={{
                           padding: '12px 14px',
@@ -214,18 +338,18 @@ export default function MessagePage() {
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           cursor: 'pointer',
-                          backgroundColor: '#FFFFFF',
+                          backgroundColor: 'transparent',
                           borderBottom: index === chatConversations.length - 1 ? 'none' : '1px solid rgba(226, 229, 232, 0.45)',
                           transition: 'background-color 0.2s ease'
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
-                          
+
                           {/* 高保真重叠群头像 (2个真实博主头像重叠 + 1个微缩计数气泡) */}
                           {chat.isGroup ? (
                             <div style={{ position: 'relative', width: '38px', height: '38px', flexShrink: 0 }}>
-                              <img 
-                                src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=60&h=60&q=80" 
+                              <img
+                                src="/avatar_neko.png"
                                 style={{
                                   position: 'absolute',
                                   top: 0,
@@ -239,8 +363,8 @@ export default function MessagePage() {
                                 }}
                                 alt="avatar1"
                               />
-                              <img 
-                                src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=60&h=60&q=80" 
+                              <img
+                                src="/avatar_cos.png"
                                 style={{
                                   position: 'absolute',
                                   bottom: 0,
@@ -254,7 +378,7 @@ export default function MessagePage() {
                                 }}
                                 alt="avatar2"
                               />
-                              <div 
+                              <div
                                 style={{
                                   position: 'absolute',
                                   top: '2px',
@@ -277,7 +401,7 @@ export default function MessagePage() {
                               </div>
                             </div>
                           ) : (
-                            <div 
+                            <div
                               style={{
                                 width: '38px',
                                 height: '38px',
@@ -305,7 +429,7 @@ export default function MessagePage() {
                                 {chat.time}
                               </span>
                             </div>
-                            <p 
+                            <p
                               style={{
                                 fontSize: '8px',
                                 color: 'var(--m-text-sub)',
@@ -320,10 +444,10 @@ export default function MessagePage() {
                           </div>
                         </div>
 
-                        {/* 右侧未读数展示 (去除多余的右箭头，使视觉更干净) */}
-                        {hasUnread && (
-                          <div style={{ marginLeft: '12px', display: 'flex', alignItems: 'center' }}>
-                            <span 
+	                        {/* 右侧未读数与删除 */}
+	                        <div style={{ marginLeft: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+	                          {hasUnread && (
+	                            <span
                               style={{
                                 backgroundColor: '#E5A9A9',
                                 color: '#FFFFFF',
@@ -339,22 +463,33 @@ export default function MessagePage() {
                                 boxShadow: '0 2px 6px rgba(229,169,169,0.3)'
                               }}
                             >
-                              {chat.unread}
-                            </span>
-                          </div>
-                        )}
-                      </div>
+	                              {chat.unread}
+	                            </span>
+	                          )}
+	                          {!chat.isGroup && (
+	                            <button
+	                              onClick={(e) => {
+	                                e.stopPropagation();
+	                                if (confirm('确定删除这条私聊会话吗？本地记录会清空。')) deleteConversation(chat.id);
+	                              }}
+	                              style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--m-text-muted)', cursor: 'pointer', padding: '4px' }}
+	                            >
+	                              <Trash2 size={11} />
+	                            </button>
+	                          )}
+	                        </div>
+	                      </div>
                     );
                   })}
                 </div>
               ) : (
-                <div 
+                <div
                   style={{
                     padding: '30px',
                     textAlign: 'center',
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: '16px',
-                    border: '1px solid rgba(226, 229, 232, 0.45)',
+                    backgroundColor: 'var(--m-bg-card)',
+                    borderRadius: '12px',
+                    border: '1px solid #EEEEEE',
                     color: 'var(--m-text-muted)',
                     fontSize: '9px'
                   }}

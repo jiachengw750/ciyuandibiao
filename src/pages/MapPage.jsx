@@ -142,7 +142,7 @@ export default function MapPage() {
       id: 'u-001',
       name: '小透明栗子',
       status: '大悦城排队吃谷中',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80',
+      avatar: '/avatar_cos.png',
       lat: 31.238,
       lng: 121.460,
       badge: '痛包打卡'
@@ -151,7 +151,7 @@ export default function MapPage() {
       id: 'u-002',
       name: '社恐小林',
       status: 'Cos妆造中',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80',
+      avatar: '/avatar_poet.png',
       lat: 31.222,
       lng: 121.410,
       badge: '排队面基'
@@ -160,7 +160,7 @@ export default function MapPage() {
       id: 'u-003',
       name: '吃土阿松',
       status: '寻同好分摊福袋',
-      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=100&q=80',
+      avatar: '/avatar_neko.png',
       lat: 31.201,
       lng: 121.360,
       badge: '求拼单'
@@ -1511,7 +1511,7 @@ export default function MapPage() {
                             <span style={{ fontSize: '7px', fontWeight: 800 }}>团长 · {activeSelectedInfo.creator.name}</span>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '3px', backgroundColor: '#e2e5e844', padding: '3px 6px', borderRadius: '8px' }}>
-                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="avatar" style={{ width: '12px', height: '12px', borderRadius: '50%' }} />
+                            <img src="/avatar_cos.png" alt="avatar" style={{ width: '12px', height: '12px', borderRadius: '50%' }} />
                             <span style={{ fontSize: '7px', fontWeight: 800 }}>社友栗子</span>
                           </div>
                         </div>

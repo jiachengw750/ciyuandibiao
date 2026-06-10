@@ -3,8 +3,9 @@ import { useApp } from '../context/AppContext';
 import { 
   Send, Globe, MapPin, Hash, Check, 
   ChevronRight, Plus, X, Image as ImageIcon, 
-  Film, ArrowLeft, Play, AlertCircle
+  Film, ArrowLeft, Play, AlertCircle, Trash2, Sparkles
 } from 'lucide-react';
+import { ReqBadge } from '../components/ReqAnnotation';
 
 export default function CreatePostPage() {
   const { routeStack, circles, circleMemberships, activities, createPost, popRoute, saveDraft, deleteDraft } = useApp();
@@ -31,6 +32,7 @@ export default function CreatePostPage() {
   // 视频流：已选视频与封面
   const [selectedVideoUrl, setSelectedVideoUrl] = useState(initialDraft?.videoUrl || '');
   const [selectedVideoCover, setSelectedVideoCover] = useState(initialDraft?.type === 'video' ? initialDraft?.images?.[0] || '' : '');
+  const [showLocalVideoAlbum, setShowLocalVideoAlbum] = useState(false);
 
   // 筛选用户加入的圈子
   const joinedCircles = circles.filter(c => circleMemberships[c.id]);
@@ -45,19 +47,19 @@ export default function CreatePostPage() {
     {
       id: 'mv-1',
       title: 'BW2026 宅舞舞台返图.mp4',
-      cover: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&q=80',
+      cover: '/cover_sakura.png',
       url: 'https://assets.mixkit.co/videos/preview/mixkit-cosplay-girl-in-neon-lighting-40010-large.mp4'
     },
     {
       id: 'mv-2',
       title: 'CP30 痛包集锦 Vlog.mp4',
-      cover: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&w=150&q=80',
+      cover: '/cover_sky.png',
       url: 'https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-signboard-light-40008-large.mp4'
     },
     {
       id: 'mv-3',
       title: '大悦城快闪漫展现场.mp4',
-      cover: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=150&q=80',
+      cover: '/cover_muzi.png',
       url: 'https://assets.mixkit.co/videos/preview/mixkit-woman-cosplaying-a-character-40009-large.mp4'
     }
   ];
@@ -105,10 +107,10 @@ export default function CreatePostPage() {
     let finalImages = selectedImages;
     if (selectedType === 'image' && selectedImages.length === 0) {
       const placeholders = [
-        'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80', // 二次元插画风格
-        'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80', // 星空幻想
-        'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=600&q=80', // 霓虹街景
-        'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80'  // 唯美粉色云海
+        '/cover_muzi.png', // 二次元插画风格
+        '/cover_sky.png', // 星空幻想
+        '/cover_sakura.png', // 霓虹街景
+        '/cover_sky.png'  // 唯美粉色云海
       ];
       // 简单散列算法保证相同的文本内容渲染相同的背景
       const hash = content.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -253,7 +255,7 @@ export default function CreatePostPage() {
 
   // ==================== 视图 2：编辑器表单 (图文/视频共用结构) ====================
   return (
-    <div className="w-full h-full bg-[#FFFFFF] flex flex-col relative select-none">
+    <div className="w-full h-full flex flex-col relative select-none" style={{ backgroundColor: 'var(--m-bg-canvas)' }}>
       
       {/* 隐藏的本地图片 input */}
       <input 
@@ -270,8 +272,8 @@ export default function CreatePostPage() {
         style={{
           height: '44px',
           width: '100%',
-          backgroundColor: '#FFFFFF',
-          borderBottom: '1px solid var(--m-border)',
+          backgroundColor: 'var(--m-bg-card)',
+          borderBottom: '1px solid #EEEEEE',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -299,8 +301,9 @@ export default function CreatePostPage() {
           <span>返回</span>
         </button>
         
-        <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--m-text-main)' }}>
-          {selectedType === 'image' ? '发布图文动态' : '发布视频动态'}
+        <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--m-text-main)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span>{selectedType === 'image' ? '发布图文动态' : '发布视频动态'}</span>
+          <ReqBadge id="PUB-EDITOR" style={{ position: 'relative', top: '-1px' }} />
         </span>
         
         <div style={{ width: '40px' }} />
@@ -312,15 +315,17 @@ export default function CreatePostPage() {
         {/* 标题 & 内容输入框 */}
         <div 
           style={{ 
-            backgroundColor: '#F8F9FA', 
+            backgroundColor: 'var(--m-bg-card)', 
             borderRadius: '12px', 
             padding: '12px', 
-            border: '1px solid rgba(226, 229, 232, 0.45)',
+            border: '1px solid #EEEEEE',
             display: 'flex',
             flexDirection: 'column',
-            gap: '8px'
+            gap: '8px',
+            position: 'relative'
           }}
         >
+          <ReqBadge id="PUB-EDITOR" style={{ top: '-6px', right: '-6px' }} />
           <input 
             type="text"
             placeholder={selectedType === 'image' ? "为图文拟个吸引同好的标题吧..." : "为视频写个震撼的现场标题吧..."}
@@ -363,8 +368,9 @@ export default function CreatePostPage() {
         {selectedType === 'image' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderBottom: '1px solid rgba(226,229,232,0.4)', paddingBottom: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '8px', fontWeight: 800, color: 'var(--m-text-sub)' }}>
+              <span style={{ fontSize: '8px', fontWeight: 800, color: 'var(--m-text-sub)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 添加图片 (首张图将作为网格封面)
+                <ReqBadge id="PUB-EDITOR" style={{ position: 'relative', top: '-1px' }} />
               </span>
               {selectedImages.length === 0 && (
                 <span style={{ fontSize: '7.5px', color: 'var(--m-text-muted)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '2px' }}>
@@ -381,8 +387,8 @@ export default function CreatePostPage() {
                   width: '64px',
                   height: '64px',
                   borderRadius: '8px',
-                  border: '1.5px dashed var(--m-border)',
-                  backgroundColor: '#F8F9FA',
+                  border: '1px dashed #EEEEEE',
+                  backgroundColor: 'var(--m-bg-card)',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -447,8 +453,9 @@ export default function CreatePostPage() {
         {selectedType === 'video' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderBottom: '1px solid rgba(226,229,232,0.4)', paddingBottom: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '8px', fontWeight: 800, color: 'var(--m-text-sub)' }}>
+              <span style={{ fontSize: '8px', fontWeight: 800, color: 'var(--m-text-sub)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 选择漫展视频录像
+                <ReqBadge id="PUB-EDITOR" style={{ position: 'relative', top: '-1px' }} />
               </span>
               {!selectedVideoUrl && (
                 <span style={{ fontSize: '7.5px', color: '#FF6384', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '2px' }}>
@@ -458,62 +465,93 @@ export default function CreatePostPage() {
               )}
             </div>
 
-            {/* 三个预置的高质量模拟视频列表 */}
+            {/* 模拟从本地相册选择交互 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {mockVideoPool.map(video => {
-                const isSelected = selectedVideoUrl === video.url;
-                return (
-                  <div 
-                    key={video.id}
+              {selectedVideoUrl ? (
+                /* 已选择视频展示卡片 */
+                <div 
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '8px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--m-primary)',
+                    backgroundColor: 'rgba(168, 129, 194, 0.04)',
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{ position: 'relative', width: '48px', height: '48px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
+                    <img src={selectedVideoCover || '/cover_muzi.png'} alt="v_cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF' }}>
+                      <Play size={14} fill="#FFFFFF" />
+                    </div>
+                  </div>
+                  
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '8.5px', fontWeight: 800, color: 'var(--m-text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {mockVideoPool.find(v => v.url === selectedVideoUrl)?.title || '已选漫展视频.mp4'}
+                    </span>
+                    <span style={{ fontSize: '7px', color: 'var(--m-text-muted)' }}>
+                      视频时长: 0:15
+                    </span>
+                  </div>
+
+                  <button 
+                    type="button"
                     onClick={() => {
-                      setSelectedVideoUrl(video.url);
-                      setSelectedVideoCover(video.cover);
+                      setSelectedVideoUrl('');
+                      setSelectedVideoCover('');
                     }}
                     className="interactive-scale"
                     style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--m-text-muted)',
+                      cursor: 'pointer',
+                      padding: '4px',
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      padding: '8px',
-                      borderRadius: '10px',
-                      border: isSelected ? '1.5px solid var(--m-secondary)' : '1px solid var(--m-border)',
-                      backgroundColor: isSelected ? 'var(--m-secondary-light)' : '#F8F9FA',
-                      cursor: 'pointer'
+                      alignItems: 'center'
                     }}
                   >
-                    <div style={{ position: 'relative', width: '48px', height: '48px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
-                      <img src={video.cover} alt="v_cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF' }}>
-                        <Play size={14} fill="#FFFFFF" />
-                      </div>
-                    </div>
-                    
-                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <span style={{ fontSize: '8.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>
-                        {video.title}
-                      </span>
-                      <span style={{ fontSize: '7px', color: 'var(--m-text-muted)' }}>
-                        视频时长: 0:15 | 点击选择
-                      </span>
-                    </div>
-
-                    {isSelected && (
-                      <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'var(--m-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF' }}>
-                        <Check size={10} strokeWidth={3} />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                    <Trash2 size={12} className="text-neutral-400" />
+                  </button>
+                </div>
+              ) : (
+                /* +号从本地相册选择 */
+                <div 
+                  onClick={() => setShowLocalVideoAlbum(true)}
+                  className="interactive-scale"
+                  style={{
+                    height: '75px',
+                    borderRadius: '12px',
+                    border: '1.5px dashed var(--m-primary)',
+                    backgroundColor: 'rgba(168, 129, 194, 0.04)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(168, 129, 194, 0.03)'
+                  }}
+                >
+                  <Plus size={16} className="text-[#A881C2]" />
+                  <span style={{ fontSize: '8.5px', fontWeight: 800, color: 'var(--m-primary)' }}>
+                    从本地相册选择漫展视频录像
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* 下拉表单配置项 */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
           
           {/* 关联同好圈 */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 4px', borderBottom: '1px solid rgba(226,229,232,0.45)', position: 'relative' }}>
+            <ReqBadge id="PUB-EDITOR" style={{ top: '-6px', right: '0px' }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Globe size={13} className="text-neutral-500" />
               <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)' }}>分发到同好圈</span>
@@ -548,6 +586,7 @@ export default function CreatePostPage() {
 
           {/* 关联现场地标 */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 4px', borderBottom: '1px solid rgba(226,229,232,0.45)', position: 'relative' }}>
+            <ReqBadge id="PUB-EDITOR" style={{ top: '-6px', right: '0px' }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <MapPin size={13} className="text-neutral-500" />
               <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)' }}>关联现场地标</span>
@@ -581,8 +620,9 @@ export default function CreatePostPage() {
           {/* 附加话题标签 */}
           <div 
             onClick={() => setShowTagsDrawer(!showTagsDrawer)}
-            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 4px', borderBottom: '1px solid rgba(226,229,232,0.45)', cursor: 'pointer' }}
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 4px', borderBottom: '1px solid rgba(226,229,232,0.45)', cursor: 'pointer', position: 'relative' }}
           >
+            <ReqBadge id="PUB-EDITOR" style={{ top: '-6px', right: '0px' }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Hash size={13} className="text-neutral-500" />
               <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)' }}>添加话题标签</span>
@@ -599,13 +639,13 @@ export default function CreatePostPage() {
           {showTagsDrawer && (
             <div 
               style={{ 
-                backgroundColor: '#F8F9FA', 
+                backgroundColor: 'var(--m-bg-card)', 
                 borderRadius: '0 0 12px 12px', 
                 padding: '10px', 
                 display: 'flex', 
                 flexWrap: 'wrap', 
                 gap: '6px',
-                border: '1px solid rgba(226, 229, 232, 0.45)',
+                border: '1px solid #EEEEEE',
                 borderTop: 'none'
               }}
             >
@@ -643,8 +683,8 @@ export default function CreatePostPage() {
           left: 0,
           right: 0,
           height: '50px',
-          backgroundColor: '#FFFFFF',
-          borderTop: '1px solid rgba(226, 229, 232, 0.5)',
+          backgroundColor: 'var(--m-bg-card)',
+          borderTop: '1px solid #EEEEEE',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'flex-end',
@@ -670,10 +710,12 @@ export default function CreatePostPage() {
             marginRight: '8px',
             display: 'flex',
             alignItems: 'center',
-            height: '28px'
+            height: '28px',
+            position: 'relative'
           }}
         >
           保存草稿
+          <ReqBadge id="PUB-ACTION" style={{ top: '-10px', right: '-10px' }} />
         </button>
 
         {/* 发布动态 */}
@@ -694,12 +736,154 @@ export default function CreatePostPage() {
             borderRadius: '9999px',
             cursor: isSubmitDisabled ? 'not-allowed' : 'pointer',
             boxShadow: isSubmitDisabled ? 'none' : '0 4px 10px rgba(229, 169, 169, 0.25)',
-            height: '28px'
+            height: '28px',
+            position: 'relative'
           }}
         >
           <Send size={10} />
           <span>发布动态</span>
+          <ReqBadge id="PUB-ACTION" style={{ top: '-10px', right: '-10px' }} />
         </button>
+      {/* 模拟本地相册弹窗 */}
+      {showLocalVideoAlbum && (
+        <div 
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(2px)',
+            zIndex: 150,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+          onClick={() => setShowLocalVideoAlbum(false)}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '20px',
+              border: '2px solid var(--m-primary)',
+              width: '90%',
+              maxWidth: '320px',
+              maxHeight: '400px',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 8px 24px rgba(168, 129, 194, 0.15)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            {/* 顶部撕纸胶带装饰 */}
+            <div 
+              style={{
+                position: 'absolute',
+                top: '-4px',
+                left: '50%',
+                transform: 'translateX(-50%) rotate(1deg)',
+                width: '70px',
+                height: '16px',
+                backgroundColor: 'rgba(168, 129, 194, 0.3)',
+                border: '1px dashed var(--m-primary)',
+                zIndex: 10
+              }}
+            />
+
+            {/* 弹窗头部 */}
+            <div 
+              style={{
+                padding: '16px 16px 10px 16px',
+                borderBottom: '1px dashed var(--m-border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexShrink: 0,
+                marginTop: '6px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Sparkles size={14} className="text-[#A881C2]" />
+                <h3 style={{ fontSize: '11px', fontWeight: 800, color: 'var(--m-text-main)', margin: 0 }}>手机系统相册</h3>
+              </div>
+              <button 
+                onClick={() => setShowLocalVideoAlbum(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--m-text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '4px'
+                }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* 相册内容 */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <span style={{ fontSize: '8px', color: 'var(--m-text-muted)', paddingLeft: '2px' }}>
+                📷 漫展现场录像录屏
+              </span>
+
+              {mockVideoPool.map(video => {
+                const isSelected = selectedVideoUrl === video.url;
+                return (
+                  <div 
+                    key={video.id}
+                    onClick={() => {
+                      setSelectedVideoUrl(video.url);
+                      setSelectedVideoCover(video.cover);
+                      setShowLocalVideoAlbum(false); // 选中后关闭相册
+                    }}
+                    className="interactive-scale"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '8px',
+                      borderRadius: '12px',
+                      border: isSelected ? '1.5px solid var(--m-primary)' : '1px solid #EEEEEE',
+                      backgroundColor: isSelected ? 'var(--m-primary-light)' : '#FDFCF7',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ position: 'relative', width: '42px', height: '42px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
+                      <img src={video.cover} alt="v_cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF' }}>
+                        <Play size={12} fill="#FFFFFF" />
+                      </div>
+                    </div>
+                    
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                      <span style={{ fontSize: '8.5px', fontWeight: 800, color: 'var(--m-text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {video.title}
+                      </span>
+                      <span style={{ fontSize: '7px', color: 'var(--m-text-muted)' }}>
+                        时长: 0:15
+                      </span>
+                    </div>
+
+                    {isSelected && (
+                      <div style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: 'var(--m-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF' }}>
+                        <span style={{ fontSize: '8px', fontWeight: 900 }}>✓</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div style={{ padding: '8px 12px', borderTop: '1px dashed var(--m-border)', backgroundColor: '#FAF9F6', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ fontSize: '7px', color: 'var(--m-text-muted)' }}>已过滤非视频格式媒体文件</span>
+            </div>
+
+          </div>
+        </div>
+      )}
       </div>
 
     </div>

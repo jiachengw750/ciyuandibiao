@@ -32,9 +32,9 @@ export default function TesterPanel() {
   // 3. 模拟其他人提交加入申请
   const simulateIncomingRequest = (groupId) => {
     const randomUsers = [
-      { name: '冷酷松露酱', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&h=100&q=80', msg: '求过！排少谷子带了黑尾和列夫！' },
-      { name: '秋叶原常驻喵', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=100&h=100&q=80', msg: '互拍搭子，带单反设备！' },
-      { name: '吃土少女咸鱼', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100&q=80', msg: 'CP搭火锅，我饭量大但能说会道！' }
+      { name: '冷酷松露酱', avatar: '/avatar_poet.png', msg: '求过！排少谷子带了黑尾和列夫！' },
+      { name: '秋叶原常驻喵', avatar: '/avatar_neko.png', msg: '互拍搭子，带单反设备！' },
+      { name: '吃土少女咸鱼', avatar: '/avatar_muzi.png', msg: 'CP搭火锅，我饭量大但能说会道！' }
     ];
     const pick = randomUsers[Math.floor(Math.random() * randomUsers.length)];
     

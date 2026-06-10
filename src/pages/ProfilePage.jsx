@@ -1,28 +1,39 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { 
-  LogOut, Heart, Calendar, MessageSquare, MapPin, 
-  Settings, X, ChevronRight, Camera, Copy, 
-  RefreshCw, Plus, Compass, Sparkles, Smile, ArrowLeft, Edit3, Trash2, Play
+import {
+  LogOut, Heart, Calendar, MapPin,
+  Settings, X, ChevronRight, Camera, Copy,
+  RefreshCw, Plus, Smile, ArrowLeft, Edit3, Trash2, Play
 } from 'lucide-react';
+import { ReqBadge } from '../components/ReqAnnotation';
 
 export default function ProfilePage() {
-  const { 
-    user, 
+  const {
+    user,
     setUser,
-    handleLogout, 
-    handleLoginSuccess, 
-    activities, 
-    groups, 
+    handleLogout,
+    handleLoginSuccess,
+    activities,
+    groups,
     posts,
-    activityRelations, 
+    activityRelations,
     circles,
     pushRoute,
     resetToTab,
-    openPublishFlow,
-    drafts,
-    deleteDraft
-  } = useApp();
+	    openPublishFlow,
+	    drafts,
+	    deleteDraft,
+	    socialProfiles,
+	    accountBindings,
+	    privacySettings,
+	    notificationSettings,
+	    accountCancellation,
+	    updatePrivacySetting,
+	    updateNotificationSetting,
+	    rebindPhone,
+	    toggleThirdPartyBinding,
+	    requestAccountCancellation
+	  } = useApp();
 
 
 
@@ -32,7 +43,7 @@ export default function ProfilePage() {
   const userBirthday = user?.birthday || '2004-10-12';
   const userMbti = user?.mbti || 'INFP';
   const userId = user?.id || '1057860';
-  const userCover = user?.cover || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80';
+  const userCover = user?.cover || '/cover_muzi.png';
   const userIp = '上海市';
 
   // 状态弹窗控制
@@ -48,7 +59,7 @@ export default function ProfilePage() {
 
   // 一级主 Tab: 'publish' (发布) | 'drafts' (草稿箱) | 'activities' (活动)
   const [activeMainTab, setActiveMainTab] = useState('publish');
-  
+
   // 二级子 Tab (仅在 'publish' 时显示): 'works' (作品) | 'liked' (喜欢) | 'collected' (收藏)
   const [activeSubTab, setActiveSubTab] = useState('works');
 
@@ -61,28 +72,28 @@ export default function ProfilePage() {
   const [editCover, setEditCover] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
-  
+
   // 自定义新标签输入状态
   const [customTagInput, setCustomTagInput] = useState('');
 
   // 换头像/封面背景池
   const mockAvatarPool = [
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80',
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80',
-    'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&h=150&q=80',
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80'
+    '/avatar_muzi.png',
+    '/avatar_neko.png',
+    '/avatar_poet.png',
+    '/avatar_cos.png'
   ];
 
   const mockCoverPool = [
-    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=600&q=80'
+    '/cover_muzi.png',
+    '/cover_sky.png',
+    '/cover_sakura.png'
   ];
 
   // 预设的人设性格标签
   const presetTagsPool = [
-    '温柔的猫', 'ENTP', '委托老师', '互联网民工', '福瑞控', '正太', 
-    '小猫咪', 'INFP', 'ISFJ', '萌妹', '纯爱战士', '吃谷大佬', 
+    '温柔的猫', 'ENTP', '委托老师', '互联网民工', '福瑞控', '正太',
+    '小猫咪', 'INFP', 'ISFJ', '萌妹', '纯爱战士', '吃谷大佬',
     '咕咕咕', 'Coser大佬', '排少狂热', '原神双修', '技术宅', '社恐人士'
   ];
   const [recommendedTags, setRecommendedTags] = useState(presetTagsPool.slice(0, 10));
@@ -95,7 +106,7 @@ export default function ProfilePage() {
   // 过滤数据逻辑
   // 1. 作品 (我正式发布的动态)
   const myPosts = posts.filter(p => user && p.author.name === user.name && p.status === 'normal');
-  
+
   // 2. 喜欢 (我点过赞的动态)
   const likedPosts = posts.filter(p => p.liked);
 
@@ -107,9 +118,10 @@ export default function ProfilePage() {
 
   // 5. 想去的活动
   const wantedActivities = activities.filter(a => activityRelations[a.id]?.wanted);
-  
+  const favoritedActivities = activities.filter(a => activityRelations[a.id]?.favorited);
+
   // 6. 我参加的拼团
-  const joinedGroups = groups.filter(g => user && g.members.some(m => m.name === user.name));
+  const joinedGroups = groups.filter(g => user && g.members && g.members.some(m => m.name === user.name));
 
   // 7. 我加入的同好营 (我的圈子)
   // 模拟一些用户加入的同好营
@@ -192,17 +204,20 @@ export default function ProfilePage() {
   };
 
   const [cacheSize, setCacheSize] = useState('32.4 MB');
+  const [newPhone, setNewPhone] = useState('');
+  const followerCount = socialProfiles.filter(profile => profile.isFollower).length;
+  const followingCount = socialProfiles.filter(profile => profile.isFollowing).length;
 
   return (
-    <div className="w-full h-full bg-[#F6F5F2] flex flex-col select-none relative overflow-hidden">
-      
+    <div className="w-full h-full flex flex-col select-none relative overflow-hidden" style={{ backgroundColor: 'var(--m-bg-canvas)' }}>
+
       {/* 顶部个人背景封面 */}
-      <div 
-        style={{ 
-          height: '110px', 
-          width: '100%', 
-          position: 'relative', 
-          backgroundImage: `url(${user ? userCover : 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80'})`,
+      <div
+        style={{
+          height: '110px',
+          width: '100%',
+          position: 'relative',
+          backgroundImage: `url(${user ? userCover : '/cover_muzi.png'})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           flexShrink: 0
@@ -213,7 +228,7 @@ export default function ProfilePage() {
         {/* 顶部操作：设置 + 退出 */}
         {user && (
           <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '8px', zIndex: 15 }}>
-            <button 
+            <button
               onClick={() => setShowSettingsModal(true)}
               className="interactive-scale"
               style={{
@@ -226,12 +241,14 @@ export default function ProfilePage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                position: 'relative'
               }}
             >
               <Settings size={13} />
+              <ReqBadge id="MINE-SET" style={{ top: '-10px', right: '-10px' }} />
             </button>
-            <button 
+            <button
               onClick={handleLogout}
               className="interactive-scale"
               style={{
@@ -254,59 +271,60 @@ export default function ProfilePage() {
       </div>
 
       {/* 个人主卡片 (白色悬浮堆叠面板) */}
-      <div 
-        style={{ 
-          backgroundColor: '#FFFFFF', 
-          borderTopLeftRadius: '20px', 
-          borderTopRightRadius: '20px', 
-          marginTop: '-16px', 
+      <div
+        style={{
+          backgroundColor: 'var(--m-bg-card)',
+          borderTopLeftRadius: '20px',
+          borderTopRightRadius: '20px',
+          marginTop: '-16px',
           padding: '16px 16px 12px 16px',
-          borderBottom: '1px solid var(--m-border)', 
-          position: 'relative', 
+          borderBottom: '1px solid var(--m-border)',
+          position: 'relative',
           zIndex: 10,
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: '8px', 
-          flexShrink: 0 
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          flexShrink: 0
         }}
       >
         {user ? (
           <>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
               {/* 大头像 */}
-              <img 
-                src={user.avatar} 
-                alt="avatar" 
-                style={{ 
-                  width: '58px', 
-                  height: '58px', 
-                  borderRadius: '50%', 
-                  objectFit: 'cover', 
-                  border: '3px solid #FFFFFF', 
-                  position: 'absolute', 
-                  top: '-29px', 
-                  left: '0px', 
+              <img
+                src={user.avatar}
+                alt="avatar"
+                style={{
+                  width: '58px',
+                  height: '58px',
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  border: '3px solid #FFFFFF',
+                  position: 'absolute',
+                  top: '-29px',
+                  left: '0px',
                   boxShadow: 'var(--m-shadow-sm)',
                   zIndex: 12
                 }}
               />
-              
+              <ReqBadge id="MINE-HOME" style={{ top: '-8px', left: '50px' }} />
+
               {/* 头像右侧社交统计 (与大厂截图一致：粉丝、关注、获赞) */}
-              <div 
-                style={{ 
-                  marginLeft: '70px', 
-                  display: 'flex', 
-                  gap: '14px', 
+              <div
+                style={{
+                  marginLeft: '70px',
+                  display: 'flex',
+                  gap: '14px',
                   paddingTop: '4px',
-                  lineHeight: '1.2' 
+                  lineHeight: '1.2'
                 }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--m-text-main)' }}>256</span>
+                <div onClick={() => pushRoute('social-list', { type: 'followers' }, 'profile')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--m-text-main)' }}>{followerCount}</span>
                   <span style={{ fontSize: '7.5px', color: 'var(--m-text-muted)', fontWeight: 700 }}>粉丝</span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--m-text-main)' }}>18</span>
+                <div onClick={() => pushRoute('social-list', { type: 'following' }, 'profile')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--m-text-main)' }}>{followingCount}</span>
                   <span style={{ fontSize: '7.5px', color: 'var(--m-text-muted)', fontWeight: 700 }}>关注</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -335,6 +353,7 @@ export default function ProfilePage() {
               >
                 <Edit3 size={9} />
                 <span>编辑资料</span>
+                <ReqBadge id="MINE-EDIT" style={{ top: '-10px', right: '-10px' }} />
               </button>
             </div>
 
@@ -344,7 +363,7 @@ export default function ProfilePage() {
                 <h2 style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>
                   {user.name}
                 </h2>
-                
+
                 {/* 年龄、MBTI、性别保密等小标签 */}
                 <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
                   <span style={{ fontSize: '7px', fontWeight: 800, color: '#FF7D90', backgroundColor: '#FFF0F2', padding: '1px 5px', borderRadius: '4px' }}>
@@ -372,8 +391,8 @@ export default function ProfilePage() {
             {/* 自定义人设标签 */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '2px' }}>
               {user.badges.map((b, i) => (
-                <span 
-                  key={i} 
+                <span
+                  key={i}
                   style={{
                     fontSize: '8px',
                     fontWeight: 700,
@@ -391,7 +410,7 @@ export default function ProfilePage() {
         ) : (
           <div style={{ padding: '20px 0', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '10px', color: 'var(--m-text-sub)' }}>未登录，登录后即可查看同好状态与活动</span>
-            <button 
+            <button
               onClick={handleLoginSuccess}
               className="btn-round btn-primary interactive-scale"
               style={{ padding: '6px 18px', fontSize: '9.5px' }}
@@ -406,9 +425,12 @@ export default function ProfilePage() {
       {user && (
         <div style={{ padding: '10px 16px', backgroundColor: '#FFFFFF', borderBottom: '1px solid var(--m-border)', display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>我的同好营</span>
-            <button 
-              onClick={() => pushRoute('circles')} 
+            <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              我的同好营
+              <ReqBadge id="MINE-HOME" style={{ position: 'relative', top: '-1px' }} />
+            </span>
+            <button
+              onClick={() => pushRoute('circles')}
               style={{ background: 'none', border: 'none', fontSize: '8px', color: 'var(--m-text-muted)', fontWeight: 800, display: 'flex', alignItems: 'center', cursor: 'pointer' }}
             >
               <span>全部</span>
@@ -418,7 +440,7 @@ export default function ProfilePage() {
 
           <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
             {myCircles.map(c => (
-              <div 
+              <div
                 key={c.id}
                 onClick={() => pushRoute('circle-detail', { circleId: c.id }, 'profile')}
                 className="interactive-scale"
@@ -436,7 +458,7 @@ export default function ProfilePage() {
                   cursor: 'pointer'
                 }}
               >
-                <img src={c.avatar} alt="c_avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
+                <img src={c.avatarImg || c.avatar} alt="c_avatar" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
                 <span style={{ fontSize: '8px', fontWeight: 800, color: 'var(--m-text-main)', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {c.name}
                 </span>
@@ -447,7 +469,7 @@ export default function ProfilePage() {
             ))}
 
             {/* 虚线加入同好营卡片 */}
-            <div 
+            <div
               onClick={() => resetToTab('circles')}
               className="interactive-scale"
               style={{
@@ -476,13 +498,13 @@ export default function ProfilePage() {
       {/* 双级嵌套 Tab 结构 */}
       {user && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          
+
           {/* 一级大分类 Tab: 发布 | 草稿箱 | 活动 */}
-          <div 
-            style={{ 
-              display: 'flex', 
+          <div
+            style={{
+              display: 'flex',
               justifyContent: 'space-around',
-              padding: '10px 16px 8px 16px', 
+              padding: '10px 16px 8px 16px',
               backgroundColor: '#FFFFFF',
               borderBottom: '1px solid rgba(226, 229, 232, 0.4)',
               flexShrink: 0
@@ -512,17 +534,20 @@ export default function ProfilePage() {
                   }}
                 >
                   <span>{tab.label}</span>
+                  {tab.key === 'drafts' && <ReqBadge id="MINE-ASSETS" style={{ top: '-10px', right: '-10px' }} />}
+                  {tab.key === 'activities' && <ReqBadge id="MINE-ASSETS" style={{ top: '-10px', right: '-10px' }} />}
+                  {tab.key === 'publish' && <ReqBadge id="MINE-HOME" style={{ top: '-10px', right: '-10px' }} />}
                   {isActive && (
-                    <div 
-                      style={{ 
-                        width: '100%', 
-                        height: '2px', 
-                        backgroundColor: 'var(--m-primary)', 
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '2px',
+                        backgroundColor: 'var(--m-primary)',
                         borderRadius: '1px',
                         position: 'absolute',
                         bottom: '-8px',
                         left: 0
-                      }} 
+                      }}
                     />
                   )}
                 </button>
@@ -532,7 +557,7 @@ export default function ProfilePage() {
 
           {/* 二级子 Tab: 只在一级 Tab 激活 'publish' 时显示 */}
           {activeMainTab === 'publish' && (
-            <div 
+            <div
               style={{
                 display: 'flex',
                 gap: '16px',
@@ -561,11 +586,13 @@ export default function ProfilePage() {
                       fontWeight: isActive ? 800 : 500,
                       color: isActive ? 'var(--m-primary)' : 'var(--m-text-muted)',
                       cursor: 'pointer',
-                      transition: 'all 0.15s ease'
+                      transition: 'all 0.15s ease',
+                      position: 'relative'
                     }}
                   >
-                    <span>{sub.label}</span>
-                  </button>
+                  <span>{sub.label}</span>
+                  <ReqBadge id="MINE-HOME" style={{ top: '-10px', right: '-10px' }} />
+                </button>
                 );
               })}
             </div>
@@ -573,7 +600,7 @@ export default function ProfilePage() {
 
           {/* Tab 滚动内容卡片区域 */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '60px' }}>
-            
+
             {/* ==================== 1. 发布 Tab (作品/喜欢/收藏) ==================== */}
             {activeMainTab === 'publish' && (
               <>
@@ -585,7 +612,7 @@ export default function ProfilePage() {
                         const hasImages = p.images && p.images.length > 0;
                         const isVideo = !!p.videoUrl;
                         return (
-                          <div 
+                          <div
                             key={p.id}
                             onClick={() => pushRoute('post-detail', { postId: p.id }, 'profile')}
                             className="interactive-scale"
@@ -630,7 +657,7 @@ export default function ProfilePage() {
                         <Smile size={18} className="text-[#E5A9A9]" />
                       </div>
                       <span style={{ fontSize: '8px', color: 'var(--m-text-muted)', fontWeight: 700 }}>还没有发布过作品哦~</span>
-                      <button 
+                      <button
                         onClick={() => openPublishFlow()}
                         className="btn-round btn-primary interactive-scale"
                         style={{ padding: '4px 14px', fontSize: '8px' }}
@@ -650,7 +677,7 @@ export default function ProfilePage() {
                         const hasImages = p.images && p.images.length > 0;
                         const isVideo = !!p.videoUrl;
                         return (
-                          <div 
+                          <div
                             key={p.id}
                             onClick={() => pushRoute('post-detail', { postId: p.id }, 'profile')}
                             className="interactive-scale"
@@ -706,7 +733,7 @@ export default function ProfilePage() {
                         const hasImages = p.images && p.images.length > 0;
                         const isVideo = !!p.videoUrl;
                         return (
-                          <div 
+                          <div
                             key={p.id}
                             onClick={() => pushRoute('post-detail', { postId: p.id }, 'profile')}
                             className="interactive-scale"
@@ -758,22 +785,23 @@ export default function ProfilePage() {
 
             {/* ==================== 2. 草稿箱 Tab ==================== */}
             {activeMainTab === 'drafts' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative' }}>
+                <ReqBadge id="MINE-ASSETS" style={{ top: '6px', right: '8px' }} />
                 {mockDrafts.length > 0 ? (
                   mockDrafts.map(d => (
-                    <div 
+                    <div
                       key={d.id}
                       onClick={() => pushRoute('create-post', { draft: d })}
                       className="glass-panel interactive-scale"
                       style={{
                         padding: '10px 12px',
-                        borderRadius: '14px',
-                        backgroundColor: '#FFFFFF',
+                        borderRadius: '12px',
+                        backgroundColor: 'var(--m-bg-card)',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '10px',
-                        border: 'none',
-                        boxShadow: 'var(--m-shadow-sm)',
+                        border: '1px solid #EEEEEE',
+                        boxShadow: 'none',
                         cursor: 'pointer'
                       }}
                     >
@@ -793,12 +821,12 @@ export default function ProfilePage() {
                         </p>
                         <span style={{ fontSize: '6.5px', color: 'var(--m-text-muted)', fontWeight: 700 }}>编辑于 {d.createdAt}</span>
                       </div>
-                      
+
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                         <span style={{ fontSize: '7px', fontWeight: 800, color: 'var(--m-primary)', backgroundColor: 'var(--m-primary-light)', padding: '2px 5px', borderRadius: '4px' }}>
                           {d.type === 'video' ? '视频' : '图文'}
                         </span>
-                        <button 
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
                             if (confirm('确定要删除这篇草稿吗？')) {
@@ -832,25 +860,28 @@ export default function ProfilePage() {
             {/* ==================== 3. 活动 Tab (合并想去展会与拼团) ==================== */}
             {activeMainTab === 'activities' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                
+
                 {/* 3.1 拼团活动面基段 */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)', paddingLeft: '4px' }}>加入的拼团面基</span>
+                  <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)', paddingLeft: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    加入的拼团面基
+                    <ReqBadge id="MINE-ASSETS" style={{ position: 'relative', top: '-1px' }} />
+                  </span>
                   {joinedGroups.length > 0 ? (
                     joinedGroups.map(g => (
-                      <div 
+                      <div
                         key={g.id}
                         onClick={() => pushRoute('group-detail', { groupId: g.id }, 'profile')}
                         className="glass-panel interactive-scale"
                         style={{
                           padding: '10px 12px',
-                          borderRadius: '14px',
+                          borderRadius: '12px',
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
-                          backgroundColor: '#FFFFFF',
-                          border: 'none',
-                          boxShadow: 'var(--m-shadow-sm)'
+                          backgroundColor: 'var(--m-bg-card)',
+                          border: '1px solid #EEEEEE',
+                          boxShadow: 'none'
                         }}
                       >
                         <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
@@ -868,11 +899,11 @@ export default function ProfilePage() {
                             </span>
                           </div>
                         </div>
-                        <span 
-                          style={{ 
-                            fontSize: '7.5px', 
-                            fontWeight: 800, 
-                            color: g.creator.name === user.name ? 'var(--m-primary)' : 'var(--m-secondary)', 
+                        <span
+                          style={{
+                            fontSize: '7.5px',
+                            fontWeight: 800,
+                            color: g.creator.name === user.name ? 'var(--m-primary)' : 'var(--m-secondary)',
                             backgroundColor: g.creator.name === user.name ? 'var(--m-primary-light)' : 'var(--m-secondary-light)',
                             padding: '2px 8px',
                             borderRadius: '9999px',
@@ -884,35 +915,38 @@ export default function ProfilePage() {
                       </div>
                     ))
                   ) : (
-                    <div style={{ padding: '16px', textAlign: 'center', backgroundColor: '#FFFFFF', borderRadius: '12px', color: 'var(--m-text-muted)', fontSize: '8px', fontWeight: 700 }}>
+                    <div style={{ padding: '16px', textAlign: 'center', backgroundColor: 'var(--m-bg-card)', borderRadius: '12px', color: 'var(--m-text-muted)', fontSize: '8px', fontWeight: 700, border: '1px solid #EEEEEE' }}>
                       尚未加入任何面基拼团，去地图上找找吧~
                     </div>
                   )}
                 </div>
 
-                {/* 3.2 想去展会段 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)', paddingLeft: '4px' }}>想去的展会活动</span>
+	                {/* 3.2 想去展会段 */}
+	                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)', paddingLeft: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    想去的展会活动
+                    <ReqBadge id="MINE-ASSETS" style={{ position: 'relative', top: '-1px' }} />
+                  </span>
                   {wantedActivities.length > 0 ? (
                     wantedActivities.map(a => (
-                      <div 
+                      <div
                         key={a.id}
                         onClick={() => pushRoute('activity-detail', { activityId: a.id }, 'profile')}
                         className="glass-panel interactive-scale"
                         style={{
                           padding: '10px',
-                          borderRadius: '14px',
+                          borderRadius: '12px',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '10px',
-                          backgroundColor: '#FFFFFF',
-                          border: 'none',
-                          boxShadow: 'var(--m-shadow-sm)'
+                          backgroundColor: 'var(--m-bg-card)',
+                          border: '1px solid #EEEEEE',
+                          boxShadow: 'none'
                         }}
                       >
-                        <img 
-                          src={a.cover} 
-                          alt="cv" 
+                        <img
+                          src={a.cover}
+                          alt="cv"
                           style={{ width: '32px', height: '32px', borderRadius: '8px', objectFit: 'cover' }}
                         />
                         <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -926,14 +960,59 @@ export default function ProfilePage() {
                       </div>
                     ))
                   ) : (
-                    <div style={{ padding: '16px', textAlign: 'center', backgroundColor: '#FFFFFF', borderRadius: '12px', color: 'var(--m-text-muted)', fontSize: '8px', fontWeight: 700 }}>
+                    <div style={{ padding: '16px', textAlign: 'center', backgroundColor: 'var(--m-bg-card)', borderRadius: '12px', color: 'var(--m-text-muted)', fontSize: '8px', fontWeight: 700, border: '1px solid #EEEEEE' }}>
                       尚未标记想去的同好活动
                     </div>
                   )}
-                </div>
+	                </div>
 
-              </div>
-            )}
+	                {/* 3.3 收藏活动段 */}
+	                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+	                  <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)', paddingLeft: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+	                    收藏的活动
+	                    <ReqBadge id="MINE-ASSETS" style={{ position: 'relative', top: '-1px' }} />
+	                  </span>
+	                  {favoritedActivities.length > 0 ? (
+	                    favoritedActivities.map(a => (
+	                      <div
+	                        key={a.id}
+	                        onClick={() => pushRoute('activity-detail', { activityId: a.id }, 'profile')}
+	                        className="glass-panel interactive-scale"
+	                        style={{
+	                          padding: '10px',
+	                          borderRadius: '12px',
+	                          display: 'flex',
+	                          alignItems: 'center',
+	                          gap: '10px',
+	                          backgroundColor: 'var(--m-bg-card)',
+	                          border: '1px solid #EEEEEE',
+	                          boxShadow: 'none'
+	                        }}
+	                      >
+	                        <img
+	                          src={a.cover}
+	                          alt="cv"
+	                          style={{ width: '32px', height: '32px', borderRadius: '8px', objectFit: 'cover' }}
+	                        />
+	                        <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+	                          <h4 style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', margin: 0 }}>
+	                            {a.title}
+	                          </h4>
+	                          <p style={{ fontSize: '7.5px', color: 'var(--m-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
+	                            {a.date}
+	                          </p>
+	                        </div>
+	                      </div>
+	                    ))
+	                  ) : (
+	                    <div style={{ padding: '16px', textAlign: 'center', backgroundColor: 'var(--m-bg-card)', borderRadius: '12px', color: 'var(--m-text-muted)', fontSize: '8px', fontWeight: 700, border: '1px solid #EEEEEE' }}>
+	                      尚未收藏同好活动
+	                    </div>
+	                  )}
+	                </div>
+
+	              </div>
+	            )}
 
           </div>
         </div>
@@ -942,7 +1021,7 @@ export default function ProfilePage() {
       {/* ============================================================== */}
       {/* 弹窗：编辑个人资料 */}
       {showEditModal && (
-        <div 
+        <div
           style={{
             position: 'absolute',
             inset: 0,
@@ -954,9 +1033,9 @@ export default function ProfilePage() {
           }}
         >
           <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#FFFFFF', position: 'relative', overflowY: 'auto' }}>
-            
+
             {/* 顶层导航栏 */}
-            <div 
+            <div
               style={{
                 height: '48px',
                 padding: '0 16px',
@@ -970,25 +1049,28 @@ export default function ProfilePage() {
                 zIndex: 110
               }}
             >
-              <button 
+              <button
                 onClick={() => setShowEditModal(false)}
                 style={{ background: 'none', border: 'none', fontSize: '11px', color: 'var(--m-text-sub)', fontWeight: 800, cursor: 'pointer' }}
               >
                 取消
               </button>
-              <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--m-text-main)' }}>编辑资料</span>
-              <button 
+              <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--m-text-main)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                编辑资料
+                <ReqBadge id="MINE-EDIT" style={{ position: 'relative', top: '-1px' }} />
+              </span>
+              <button
                 onClick={handleSaveProfile}
                 className="interactive-scale"
-                style={{ 
-                  backgroundColor: 'var(--m-primary)', 
-                  color: '#FFFFFF', 
-                  fontSize: '10px', 
-                  fontWeight: 800, 
-                  padding: '4px 14px', 
+                style={{
+                  backgroundColor: 'var(--m-primary)',
+                  color: '#FFFFFF',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  padding: '4px 14px',
                   borderRadius: '9999px',
                   border: 'none',
-                  cursor: 'pointer' 
+                  cursor: 'pointer'
                 }}
               >
                 保存
@@ -996,7 +1078,7 @@ export default function ProfilePage() {
             </div>
 
             {/* 宽幅封面编辑图区域 (点击更换封面) */}
-            <div 
+            <div
               onClick={handleCycleCover}
               className="interactive-scale"
               style={{
@@ -1021,12 +1103,12 @@ export default function ProfilePage() {
 
             {/* 个人资料设置列表 */}
             <div style={{ padding: '0 16px 40px 16px', marginTop: '-24px', position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              
+
               {/* 可点击更换的相机悬浮头像 */}
               <div style={{ position: 'relative', width: '54px', height: '54px', alignSelf: 'flex-start', cursor: 'pointer' }} onClick={handleCycleAvatar}>
-                <img 
-                  src={editAvatar} 
-                  alt="avatar_edit" 
+                <img
+                  src={editAvatar}
+                  alt="avatar_edit"
                   style={{ width: '54px', height: '54px', borderRadius: '50%', objectFit: 'cover', border: '3px solid #FFFFFF', boxShadow: 'var(--m-shadow-sm)' }}
                 />
                 <div style={{ position: 'absolute', inset: '3px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF' }}>
@@ -1036,7 +1118,7 @@ export default function ProfilePage() {
 
               {/* 表单项列表 */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', backgroundColor: 'var(--m-border)', borderRadius: '14px', overflow: 'hidden' }}>
-                
+
                 {/* ID行 */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#FFFFFF' }}>
                   <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>ID</span>
@@ -1049,8 +1131,8 @@ export default function ProfilePage() {
                 {/* 昵称行 */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: '#FFFFFF' }}>
                   <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>昵称</span>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value.substring(0, 12))}
                     style={{
@@ -1069,7 +1151,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* 性别选择行 */}
-                <div 
+                <div
                   onClick={() => setShowGenderPicker(true)}
                   style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#FFFFFF', cursor: 'pointer' }}
                 >
@@ -1081,12 +1163,12 @@ export default function ProfilePage() {
                 </div>
 
                 {/* 生日选择行 */}
-                <div 
+                <div
                   style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: '#FFFFFF', position: 'relative' }}
                 >
                   <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>生日</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                    <input 
+                    <input
                       type="date"
                       value={editBirthday}
                       onChange={(e) => setEditBirthday(e.target.value)}
@@ -1107,7 +1189,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* MBTI选择行 */}
-                <div 
+                <div
                   onClick={() => setShowMbtiPicker(true)}
                   style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#FFFFFF', cursor: 'pointer' }}
                 >
@@ -1119,7 +1201,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* 标签选择行 */}
-                <div 
+                <div
                   onClick={() => setShowTagSelector(true)}
                   style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#FFFFFF', cursor: 'pointer' }}
                 >
@@ -1138,7 +1220,7 @@ export default function ProfilePage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)', paddingLeft: '4px' }}>个人签名</span>
                 <div style={{ position: 'relative', width: '100%' }}>
-                  <textarea 
+                  <textarea
                     rows={3}
                     value={editBio}
                     onChange={(e) => setEditBio(e.target.value.substring(0, 100))}
@@ -1169,11 +1251,11 @@ export default function ProfilePage() {
 
           {/* 性别 Picker */}
           {showGenderPicker && (
-            <div 
+            <div
               style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 120, display: 'flex', alignItems: 'flex-end' }}
               onClick={() => setShowGenderPicker(false)}
             >
-              <div 
+              <div
                 style={{ width: '100%', backgroundColor: '#FFFFFF', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 121 }}
                 onClick={e => e.stopPropagation()}
               >
@@ -1207,11 +1289,11 @@ export default function ProfilePage() {
 
           {/* MBTI Picker */}
           {showMbtiPicker && (
-            <div 
+            <div
               style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 120, display: 'flex', alignItems: 'flex-end' }}
               onClick={() => setShowMbtiPicker(false)}
             >
-              <div 
+              <div
                 style={{ width: '100%', backgroundColor: '#FFFFFF', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 121 }}
                 onClick={e => e.stopPropagation()}
               >
@@ -1249,7 +1331,7 @@ export default function ProfilePage() {
 
           {/* 标签选择二级全屏 */}
           {showTagSelector && (
-            <div 
+            <div
               style={{
                 position: 'absolute',
                 inset: 0,
@@ -1261,7 +1343,7 @@ export default function ProfilePage() {
               }}
             >
               {/* 顶部标签条 */}
-              <div 
+              <div
                 style={{
                   height: '48px',
                   padding: '0 16px',
@@ -1273,14 +1355,14 @@ export default function ProfilePage() {
                   flexShrink: 0
                 }}
               >
-                <button 
+                <button
                   onClick={() => setShowTagSelector(false)}
                   style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '2px' }}
                 >
                   <ArrowLeft size={16} className="text-neutral-700" />
                 </button>
                 <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--m-text-main)' }}>选择标签</span>
-                <button 
+                <button
                   onClick={() => setShowTagSelector(false)}
                   style={{ background: 'none', border: 'none', fontSize: '11px', color: 'var(--m-primary)', fontWeight: 800, cursor: 'pointer' }}
                 >
@@ -1290,13 +1372,16 @@ export default function ProfilePage() {
 
               <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <h3 style={{ fontSize: '13px', fontWeight: 800, color: 'var(--m-text-main)', margin: 0 }}>个人标签</h3>
+                  <h3 style={{ fontSize: '13px', fontWeight: 800, color: 'var(--m-text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    个人标签
+                    <ReqBadge id="MINE-EDIT" style={{ position: 'relative', top: '-1px' }} />
+                  </h3>
                   <span style={{ fontSize: '8px', color: 'var(--m-text-muted)', fontWeight: 700 }}>挑选几个最像你的标签，展示在主页里</span>
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={customTagInput}
                     onChange={(e) => setCustomTagInput(e.target.value.substring(0, 8))}
                     style={{
@@ -1335,11 +1420,11 @@ export default function ProfilePage() {
                     <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>已选择</span>
                     <span style={{ fontSize: '8px', color: 'var(--m-text-muted)', fontWeight: 700 }}>{selectedTags.length}/8</span>
                   </div>
-                  
+
                   {selectedTags.length > 0 ? (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '10px', backgroundColor: '#F6F5F2', borderRadius: '12px' }}>
                       {selectedTags.map(tag => (
-                        <span 
+                        <span
                           key={tag}
                           onClick={() => toggleSelectTag(tag)}
                           style={{
@@ -1371,17 +1456,17 @@ export default function ProfilePage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ display: 'flex', justify: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>人设标签</span>
-                    <button 
+                    <button
                       onClick={handleShuffleTags}
                       className="interactive-scale"
-                      style={{ 
-                        background: 'none', 
-                        border: 'none', 
-                        fontSize: '8px', 
-                        color: 'var(--m-primary)', 
-                        fontWeight: 800, 
-                        display: 'flex', 
-                        alignItems: 'center', 
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        fontSize: '8px',
+                        color: 'var(--m-primary)',
+                        fontWeight: 800,
+                        display: 'flex',
+                        alignItems: 'center',
                         gap: '2px',
                         cursor: 'pointer'
                       }}
@@ -1428,7 +1513,7 @@ export default function ProfilePage() {
 
       {/* 弹窗：账号设置 */}
       {showSettingsModal && (
-        <div 
+        <div
           style={{
             position: 'absolute',
             inset: 0,
@@ -1440,7 +1525,7 @@ export default function ProfilePage() {
           }}
           onClick={() => setShowSettingsModal(false)}
         >
-          <div 
+          <div
             style={{
               width: '100%',
               backgroundColor: '#FFFFFF',
@@ -1458,8 +1543,11 @@ export default function ProfilePage() {
             <div style={{ width: '36px', height: '4px', borderRadius: '2px', backgroundColor: '#E2E5E8', alignSelf: 'center', marginBottom: '4px' }} />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--m-text-main)' }}>账号与系统设置</h3>
-              <button 
+              <h3 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--m-text-main)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                账号与系统设置
+                <ReqBadge id="MINE-SET" style={{ position: 'relative', top: '-1px' }} />
+              </h3>
+              <button
                 onClick={() => setShowSettingsModal(false)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--m-text-muted)' }}
               >
@@ -1467,38 +1555,127 @@ export default function ProfilePage() {
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: 'var(--m-border)', borderRadius: '14px', overflow: 'hidden', marginTop: '6px', gap: '1px' }}>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#FFFFFF' }}>
-                <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)' }}>允许附近同好通过地图扩列我</span>
-                <input type="checkbox" defaultChecked style={{ accentColor: 'var(--m-primary)' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: 'var(--m-border)', borderRadius: '14px', overflow: 'hidden', gap: '1px' }}>
+                <div style={{ padding: '10px 12px', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)' }}>手机号绑定</span>
+                    <span style={{ fontSize: '8px', color: 'var(--m-text-muted)', fontWeight: 700 }}>{accountBindings.phone}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <input
+                      value={newPhone}
+                      onChange={(e) => setNewPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                      placeholder="输入新手机号"
+                      style={{ flex: 1, height: '30px', borderRadius: '8px', border: '1px solid var(--m-border)', padding: '0 10px', fontSize: '8.5px', backgroundColor: '#F8F9FA' }}
+                    />
+                    <button
+                      onClick={() => {
+                        if (!confirm('换绑成功后将强制退出登录，需要重新登录，是否继续？')) return;
+                        const result = rebindPhone(newPhone);
+                        alert(result.ok ? '手机号换绑成功，请重新登录。' : result.reason);
+                      }}
+                      style={{ border: 'none', borderRadius: '9999px', padding: '0 10px', backgroundColor: 'var(--m-primary)', color: '#FFFFFF', fontSize: '8px', fontWeight: 800, cursor: 'pointer' }}
+                    >
+                      换绑
+                    </button>
+                  </div>
+                </div>
+
+                {[
+                  { key: 'wechat', label: '微信账号' },
+                  { key: 'qq', label: 'QQ 账号' },
+                  { key: 'bilibili', label: 'Bilibili 账号' }
+                ].map(item => (
+                  <div key={item.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#FFFFFF' }}>
+                    <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)' }}>{item.label}</span>
+                    <button
+                      onClick={() => toggleThirdPartyBinding(item.key)}
+                      style={{ border: 'none', borderRadius: '9999px', padding: '4px 9px', backgroundColor: accountBindings[item.key] ? 'var(--m-slate-light)' : 'var(--m-primary-light)', color: accountBindings[item.key] ? 'var(--m-text-sub)' : 'var(--m-primary)', fontSize: '8px', fontWeight: 800, cursor: 'pointer' }}
+                    >
+                      {accountBindings[item.key] ? '已绑定' : '去绑定'}
+                    </button>
+                  </div>
+                ))}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#FFFFFF' }}>
-                <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)' }}>新拼团审核通过时发送推送通知</span>
-                <input type="checkbox" defaultChecked style={{ accentColor: 'var(--m-primary)' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: 'var(--m-border)', borderRadius: '14px', overflow: 'hidden', gap: '1px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#FFFFFF' }}>
+                  <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)' }}>私聊发起人限制</span>
+                  <select value={privacySettings.dmScope} onChange={(e) => updatePrivacySetting('dmScope', e.target.value)} style={{ border: '1px solid var(--m-border)', borderRadius: '8px', fontSize: '8px', padding: '3px 6px', backgroundColor: '#F8F9FA' }}>
+                    <option value="mutual_only">仅互关</option>
+                    <option value="mutual_or_same_circle">互关或同圈</option>
+                    <option value="anyone">所有人</option>
+                  </select>
+                </div>
+                {[
+                  { key: 'publicPosts', label: '公开展示我的动态' },
+                  { key: 'hideLocation', label: '隐藏位置范围' },
+                  { key: 'hideIp', label: '隐藏 IP 属地' },
+                  { key: 'allowNearby', label: '允许附近同好通过地图扩列我' }
+                ].map(item => (
+                  <div key={item.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#FFFFFF' }}>
+                    <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)' }}>{item.label}</span>
+                    <input type="checkbox" checked={!!privacySettings[item.key]} onChange={(e) => updatePrivacySetting(item.key, e.target.checked)} style={{ accentColor: 'var(--m-primary)' }} />
+                  </div>
+                ))}
               </div>
 
-              <div 
-                onClick={() => {
-                  setCacheSize('0.00 KB');
-                  alert('系统缓存清理成功！');
-                }}
-                className="interactive-scale"
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#FFFFFF', cursor: 'pointer' }}
-              >
-                <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)' }}>清除本地运行缓存</span>
-                <span style={{ fontSize: '8px', color: 'var(--m-text-muted)', fontWeight: 700 }}>{cacheSize}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: 'var(--m-border)', borderRadius: '14px', overflow: 'hidden', gap: '1px' }}>
+                {[
+                  { key: 'groupApproved', label: '拼团审核通过推送' },
+                  { key: 'likesAndCollects', label: '点赞与收藏通知' },
+                  { key: 'commentsAndMentions', label: '评论与 @ 通知' },
+                  { key: 'newFollowers', label: '新增关注通知' }
+                ].map(item => (
+                  <div key={item.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#FFFFFF' }}>
+                    <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)' }}>{item.label}</span>
+                    <input type="checkbox" checked={!!notificationSettings[item.key]} onChange={(e) => updateNotificationSetting(item.key, e.target.checked)} style={{ accentColor: 'var(--m-primary)' }} />
+                  </div>
+                ))}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#FFFFFF' }}>
-                <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)' }}>软件版本</span>
-                <span style={{ fontSize: '8px', color: 'var(--m-text-muted)', fontWeight: 700 }}>v1.2.0 Stable Build</span>
+              <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: 'var(--m-border)', borderRadius: '14px', overflow: 'hidden', gap: '1px' }}>
+                <div
+                  onClick={() => {
+                    setCacheSize('0.00 KB');
+                    alert('系统缓存清理成功！');
+                  }}
+                  className="interactive-scale"
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#FFFFFF', cursor: 'pointer' }}
+                >
+                  <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)' }}>清除本地运行缓存</span>
+                  <span style={{ fontSize: '8px', color: 'var(--m-text-muted)', fontWeight: 700 }}>{cacheSize}</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#FFFFFF' }}>
+                  <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)' }}>软件版本</span>
+                  <span style={{ fontSize: '8px', color: 'var(--m-text-muted)', fontWeight: 700 }}>v1.2.0 Stable Build</span>
+                </div>
               </div>
 
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px 12px', backgroundColor: 'rgba(255,99,132,0.06)', borderRadius: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '9px', fontWeight: 800, color: '#FF6384' }}>注销账号</span>
+                  <button
+                    onClick={() => {
+                      if (!confirm('注销会进入 30 天冷冻期，并先校验是否存在未完成拼团，是否继续？')) return;
+                      const result = requestAccountCancellation();
+                      alert(result.ok ? '注销申请已提交，账号进入 30 天冷冻期。' : result.reason);
+                    }}
+                    style={{ border: 'none', borderRadius: '9999px', padding: '5px 10px', backgroundColor: 'rgba(255,99,132,0.12)', color: '#FF6384', fontSize: '8px', fontWeight: 800, cursor: 'pointer' }}
+                  >
+                    发起注销
+                  </button>
+                </div>
+                <span style={{ fontSize: '7.5px', color: 'var(--m-text-muted)', lineHeight: '1.4' }}>
+                  注销前会强拦截未完成拼团。通过校验后需确认风险告知、短信确认，并进入 30 天冷冻期。
+                  {accountCancellation ? ` 当前状态：${accountCancellation.status}，剩余 ${accountCancellation.freezeDays} 天。` : ''}
+                </span>
+              </div>
             </div>
 
-            <button 
+            <button
               onClick={() => {
                 setShowSettingsModal(false);
                 handleLogout();
@@ -1528,4 +1705,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-

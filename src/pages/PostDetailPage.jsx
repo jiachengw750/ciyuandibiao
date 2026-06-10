@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Heart, MessageSquare, Send, ChevronLeft, ChevronRight, Share2, Star, MessageCircle, AlertCircle } from 'lucide-react';
+import { ReqBadge } from '../components/ReqAnnotation';
 
 export default function PostDetailPage() {
   const { routeStack, popRoute, posts, toggleLikePost, addCommentToPost, circles } = useApp();
@@ -98,15 +99,18 @@ export default function PostDetailPage() {
               fontSize: '7.5px',
               fontWeight: 800,
               cursor: 'pointer',
-              marginLeft: '4px'
+              marginLeft: '4px',
+              position: 'relative'
             }}
           >
             关注
+            <ReqBadge id="POST-DETAIL" style={{ top: '-10px', right: '-10px' }} />
           </button>
         </div>
 
-        <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+        <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', position: 'relative' }}>
           <Share2 size={13} className="text-neutral-500" />
+          <ReqBadge id="POST-DETAIL" style={{ top: '-10px', right: '-10px' }} />
         </button>
       </div>
 
@@ -116,6 +120,7 @@ export default function PostDetailPage() {
         {/* 2. 顶部大画幅配图区域 */}
         {post.images && post.images.length > 0 && (
           <div style={{ width: '100%', position: 'relative', backgroundColor: '#F0F1F4' }}>
+            <ReqBadge id="POST-DETAIL" style={{ top: '8px', right: '8px' }} />
             <img 
               src={post.images[0]} 
               alt="mainpic" 
@@ -171,6 +176,7 @@ export default function PostDetailPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <h2 style={{ fontSize: '12px', fontWeight: 900, color: 'var(--m-text-main)', lineHeight: '1.4' }}>
               {post.title || (c ? `地标面基：${c.name}心得分享` : '同好聚会心得分享')}
+              <ReqBadge id="POST-DETAIL" style={{ position: 'relative', top: '-1px', marginLeft: '4px' }} />
             </h2>
             
             {c && (
@@ -279,6 +285,7 @@ export default function PostDetailPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <h3 style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)', marginBottom: '4px' }}>
               热门评论 ({post.comments.length})
+              <ReqBadge id="POST-DETAIL" style={{ position: 'relative', top: '-1px', marginLeft: '4px' }} />
             </h3>
             
             {post.comments.length > 0 ? (
@@ -373,6 +380,7 @@ export default function PostDetailPage() {
           zIndex: 50
         }}
       >
+        <ReqBadge id="POST-DETAIL" style={{ top: '-8px', right: '8px' }} />
         {/* 输入表单 */}
         <form onSubmit={handleSendComment} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px', marginRight: '12px' }}>
           <input 

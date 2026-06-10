@@ -28,7 +28,9 @@ export default function CreateCirclePage() {
         <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '14px', border: '1px solid var(--m-border)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)' }}>同好营名称 (必填)</label>
+            <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span>同好营名称 (必填)</span>
+            </label>
             <input 
               type="text" 
               placeholder="例如：乌野高校排球应援组"

@@ -1,5 +1,6 @@
-import { Calendar, MessageSquare, User, ArrowLeft, Sparkles, Plus, Image as ImageIcon, Film, X } from 'lucide-react';
+import { Calendar, MessageSquare, User, ArrowLeft, Sparkles, Plus, Image as ImageIcon, Film, X, Compass, Users, MessageCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { ReqBadge } from './ReqAnnotation';
 
 export default function PhoneShell({ children }) {
   const { 
@@ -39,6 +40,7 @@ export default function PhoneShell({ children }) {
     if (currentRoute.page === 'circle-detail') title = '圈子同好营';
     if (currentRoute.page === 'post-detail') title = '同好动态';
     if (currentRoute.page === 'group-detail') title = '开团面基';
+    if (currentRoute.page === 'group-approve') title = '申请审核';
     if (currentRoute.page === 'create-group') title = '发起开团';
     if (currentRoute.page === 'create-post') title = '发布动态';
     if (currentRoute.page === 'create-circle') title = '新建同好营';
@@ -51,7 +53,7 @@ export default function PhoneShell({ children }) {
           height: '44px',
           width: '100%',
           backgroundColor: '#FFFFFF',
-          borderBottom: '1px solid var(--m-border)',
+          borderBottom: 'var(--border-width) solid var(--m-border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'between',
@@ -93,68 +95,56 @@ export default function PhoneShell({ children }) {
     <div 
       style={{
         position: 'relative',
-        width: '360px',
-        height: '720px',
-        borderRadius: '40px',
-        backgroundColor: '#1E1E24',
-        border: '10px solid #2B2D31',
-        boxShadow: '0 24px 48px rgba(0, 0, 0, 0.45)',
+        width: '375px',
+        height: '812px',
+        borderRadius: '32px',
+        backgroundColor: '#ffffff',
+        border: '3px solid #4a3e56',
+        boxShadow: '8px 8px 0px #4a3e56',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
         userSelect: 'none'
       }}
     >
-      {/* 顶部听筒/前置区域 */}
-      <div 
-        style={{
-          position: 'absolute',
-          top: '6px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '110px',
-          height: '18px',
-          backgroundColor: '#000000',
-          borderRadius: '9999px',
-          zIndex: 50,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 12px'
-        }}
-      >
-        <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#1A1A1A' }}></div>
-        <div style={{ width: '32px', height: '3px', borderRadius: '9999px', backgroundColor: '#222222' }}></div>
-      </div>
+      {/* 顶部中央黏贴的和纸手撕黄色胶带 */}
+      <div className="washi-tape-top" />
 
       {/* 状态栏 */}
       <div 
         style={{
           width: '100%',
-          height: '28px',
-          backgroundColor: '#FFFFFF',
-          padding: '4px 16px 0 16px',
+          height: '32px',
+          backgroundColor: 'transparent',
+          padding: '8px 20px 0 20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          fontSize: '9px',
-          fontWeight: 700,
+          fontSize: '11px',
+          fontWeight: 800,
           color: 'var(--m-text-main)',
           zIndex: 50,
           flexShrink: 0
         }}
       >
-        <span>14:02</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span style={{ fontSize: '8px', letterSpacing: '-0.5px' }}>5G</span>
-          <div style={{ width: '16px', height: '8px', borderRadius: '2px', border: '1px solid var(--m-text-main)', padding: '1px', display: 'flex' }}>
-            <div style={{ width: '100%', height: '100%', backgroundColor: '#4CD964', borderRadius: '1px' }}></div>
+        <span>16:00</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {/* 信号格 icon */}
+          <div style={{ display: 'flex', alignItems: 'end', gap: '1px', height: '8px' }}>
+            <div style={{ width: '2px', height: '3px', backgroundColor: 'var(--m-text-main)' }}></div>
+            <div style={{ width: '2px', height: '5px', backgroundColor: 'var(--m-text-main)' }}></div>
+            <div style={{ width: '2px', height: '7px', backgroundColor: 'var(--m-text-main)' }}></div>
+          </div>
+          {/* 电池 icon */}
+          <div style={{ width: '16px', height: '9px', borderRadius: '2px', border: '1px solid var(--m-text-main)', padding: '1px', display: 'flex', position: 'relative' }}>
+            <div style={{ width: '10px', height: '100%', backgroundColor: 'var(--m-text-main)', borderRadius: '1px' }}></div>
+            <div style={{ position: 'absolute', right: '-2px', top: '2px', width: '1.5px', height: '3px', backgroundColor: 'var(--m-text-main)', borderRadius: '0 1px 1px 0' }}></div>
           </div>
         </div>
       </div>
 
       {/* 核心画布区 */}
-      <div className="app-container">
+      <div className="app-container" style={{ flex: 1, minHeight: 0 }}>
         {/* 子页面顶部条 */}
         {renderNavbar()}
 
@@ -171,16 +161,16 @@ export default function PhoneShell({ children }) {
               onClick={() => resetToTab('activities')}
               className={`tab-btn ${activeTab === 'activities' ? 'active' : ''}`}
             >
-              <Calendar className="tab-btn-icon" />
+              <Compass className="tab-btn-icon" />
               <span>活动</span>
             </button>
 
             {/* 同好营 */}
-            <button 
+            <button
               onClick={() => resetToTab('circles')}
               className={`tab-btn ${activeTab === 'circles' ? 'active' : ''}`}
             >
-              <Sparkles className="tab-btn-icon" />
+              <Users className="tab-btn-icon" />
               <span>同好营</span>
             </button>
 
@@ -196,12 +186,12 @@ export default function PhoneShell({ children }) {
                 width: '36px',
                 height: '36px',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #E5A9A9, #D4A0B9)',
+                backgroundColor: 'var(--m-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginTop: '-12px',
-                boxShadow: '0 4px 12px rgba(229, 169, 169, 0.4)'
+                boxShadow: 'none'
               }}>
                 <Plus size={18} strokeWidth={2.5} color="#FFFFFF" />
               </div>
@@ -213,7 +203,7 @@ export default function PhoneShell({ children }) {
               className={`tab-btn ${activeTab === 'messages' ? 'active' : ''}`}
               style={{ position: 'relative' }}
             >
-              <MessageSquare className="tab-btn-icon" />
+              <MessageCircle className="tab-btn-icon" />
               <span>聊天</span>
               {unreadCount > 0 && (
                 <span 
@@ -221,7 +211,7 @@ export default function PhoneShell({ children }) {
                     position: 'absolute',
                     top: '-2px',
                     right: '6px',
-                    backgroundColor: '#E5A9A9',
+                    backgroundColor: 'var(--m-primary)',
                     color: '#FFFFFF',
                     fontSize: '7px',
                     fontWeight: 800,
@@ -294,7 +284,10 @@ export default function PhoneShell({ children }) {
             <div style={{ width: '36px', height: '4px', borderRadius: '2px', backgroundColor: '#E2E5E8', alignSelf: 'center', marginBottom: '4px' }} />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '11px', fontWeight: 800, color: 'var(--m-text-main)', margin: 0 }}>选择发布类型</h3>
+              <h3 style={{ fontSize: '11px', fontWeight: 800, color: 'var(--m-text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span>选择发布类型</span>
+                <ReqBadge id="PUB-SHEET" style={{ position: 'relative', top: '-1px' }} />
+              </h3>
               <button 
                 onClick={closePublishFlow}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--m-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}

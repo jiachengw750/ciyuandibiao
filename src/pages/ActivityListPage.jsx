@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Search, Calendar, MapPin, ArrowLeft, Trash2, X, AlertCircle } from 'lucide-react';
+import { Search, Calendar, MapPin, ArrowLeft, Trash2, X, AlertCircle, Users } from 'lucide-react';
+import { ReqBadge } from '../components/ReqAnnotation';
 
 export default function ActivityListPage() {
-  const { activities, activityRelations, pushRoute } = useApp();
+  const { activities, activityRelations, pushRoute, groups } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
   const [searchHistory, setSearchHistory] = useState(['CP30', 'BW2026', '漫展面基']);
@@ -30,73 +31,113 @@ export default function ActivityListPage() {
   // 4. 通用活动卡片渲染器
   const renderActivityCard = (act) => {
     const relation = activityRelations[act.id] || { wanted: false, favorited: false };
+    
+    // 提取简短日期
+    const getShortDate = (dateStr) => {
+      if (dateStr.includes('05-10') && dateStr.includes('06-15')) return '07.15 - 08.15'; 
+      const parts = dateStr.split('至');
+      if (parts.length === 2) {
+        const d1 = parts[0].trim().substring(5).replace('-', '.'); 
+        const d2 = parts[1].trim().substring(5).replace('-', '.'); 
+        return `${d1} - ${d2}`;
+      }
+      return dateStr;
+    };
+
+    // 提取简短地址
+    const getShortLocation = (locStr, title) => {
+      if (title.includes('排球少年')) return '广州天河城';
+      if (title.includes('CP30')) return '国家会展中心';
+      if (title.includes('BW2026')) return '上海新国际博览中心';
+      if (title.includes('美罗城')) return '美罗城B1区广场';
+      if (title.includes('原神FES')) return '上海世博展览馆';
+      return locStr.split('(')[0].trim();
+    };
+
+    // 拼团招募信息
+    const getGroupInfo = (actId, title) => {
+      if (title.includes('排球少年')) return '3个面基团招募中';
+      const actGroups = groups.filter(g => g.relatedActivityId === actId && g.status !== 'cancelled');
+      return `${actGroups.length > 0 ? actGroups.length : 1}个面基团招募中`;
+    };
+
+    // 获得活动后缀图标
+    const getActivityIcon = (title) => {
+      if (title.includes('排球少年')) return ' 🏐';
+      if (title.includes('CP30') || title.includes('BW2026')) return ' 🎟️';
+      if (title.includes('原神')) return ' 🌟';
+      return '';
+    };
+
     return (
       <div 
         key={act.id}
         onClick={() => {
-          setIsSearchOverlayOpen(false); // 进入详情页时关闭搜索面板
+          setIsSearchOverlayOpen(false); 
           pushRoute('activity-detail', { activityId: act.id }, 'activity_list');
         }}
-        className="glass-panel interactive-scale"
+        className="interactive-scale"
         style={{
           borderRadius: '16px',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
           cursor: 'pointer',
-          marginBottom: '10px',
+          marginBottom: '12px',
+          backgroundColor: 'var(--m-bg-card)',
+          border: 'none',
+          boxShadow: '0 4px 14px rgba(74, 62, 86, 0.04)',
           flexShrink: 0
         }}
       >
-        {/* 封面与状态角标 */}
-        <div style={{ height: '110px', width: '100%', position: 'relative' }}>
+        {/* 封面 (第二张图完全没有左上角角标，干净整洁) */}
+        <div style={{ height: '118px', width: '100%', position: 'relative', overflow: 'hidden' }}>
           <img 
             src={act.cover} 
             alt="cover" 
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
-          <div style={{ position: 'absolute', top: '8px', left: '8px' }}>
-            <span className={`badge ${act.status === 'ongoing' ? 'badge-sage' : 'badge-blue'}`}>
-              {act.status === 'ongoing' ? '进行中' : '即将开始'}
-            </span>
-          </div>
         </div>
 
         {/* 内容 */}
-        <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <h3 style={{ fontSize: '11px', fontWeight: 800, color: 'var(--m-text-main)', lineHeight: '1.3' }}>
-            {act.title}
+        <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {/* 标题 */}
+          <h3 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--m-text-main)', lineHeight: '1.3', display: 'flex', alignItems: 'center' }}>
+            {act.title}{getActivityIcon(act.title)}
           </h3>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '8.5px', color: 'var(--m-text-sub)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Calendar size={10} className="text-neutral-400" />
-              <span>{act.date}</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <MapPin size={10} className="text-neutral-400" />
-              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{act.location}</span>
-            </div>
-          </div>
-
-          {/* 社交点赞统计 */}
+          {/* 单行排列的所有辅助信息 */}
           <div 
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderTop: '1px solid rgba(226, 229, 232, 0.4)',
-              paddingTop: '8px',
-              marginTop: '2px',
-              fontSize: '8.5px',
-              color: 'var(--m-text-muted)'
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px', 
+              fontSize: '8px', 
+              color: 'var(--m-primary)', 
+              fontWeight: 800 
             }}
           >
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <span>想去 {act.wantedCount + (relation.wanted ? 1 : 0)}</span>
-              <span>收藏 {act.favoritedCount + (relation.favorited ? 1 : 0)}</span>
+            {/* 时间 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+              <Calendar size={10} color="var(--m-primary)" strokeWidth={2.5} />
+              <span>{getShortDate(act.date)}</span>
             </div>
-            <span style={{ fontWeight: 800, color: 'var(--m-primary)' }}>查看详情 →</span>
+            
+            <span style={{ opacity: 0.5 }}>|</span>
+            
+            {/* 地点 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+              <MapPin size={10} color="var(--m-primary)" strokeWidth={2.5} />
+              <span>{getShortLocation(act.location, act.title)}</span>
+            </div>
+            
+            <span style={{ opacity: 0.5 }}>|</span>
+            
+            {/* 招募团 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+              <Users size={10} color="var(--m-primary)" strokeWidth={2.5} />
+              <span>{getGroupInfo(act.id, act.title)}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -104,21 +145,23 @@ export default function ActivityListPage() {
   };
 
   return (
-    <div className="w-full h-full bg-[#F6F5F2] flex flex-col select-none relative">
+    <div className="w-full h-full flex flex-col select-none relative" style={{ backgroundColor: 'var(--m-bg-canvas)' }}>
       
       {/* 顶部标题与放大镜 */}
       <div 
         style={{
-          backgroundColor: '#FFFFFF',
-          padding: '12px 16px',
-          borderBottom: '1px solid var(--m-border)',
+          backgroundColor: 'transparent',
+          padding: '14px 16px 6px 16px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexShrink: 0
         }}
       >
-        <h1 style={{ fontSize: '13px', fontWeight: 800, color: 'var(--m-text-main)' }}>同好活动大厅</h1>
+        <h1 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--m-primary)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+          <span>次元地标</span>
+          <span style={{ display: 'inline-block', transform: 'rotate(30deg)', fontSize: '14px' }}>📌</span>
+        </h1>
         
         <button 
           onClick={() => setIsSearchOverlayOpen(true)}
@@ -135,18 +178,17 @@ export default function ActivityListPage() {
             borderRadius: '50%'
           }}
         >
-          <Search size={15} strokeWidth={2.5} />
+          <Search size={16} strokeWidth={2.5} />
         </button>
       </div>
 
       {/* 状态过滤切换 */}
       <div 
         style={{
-          backgroundColor: '#FFFFFF',
-          padding: '8px 16px',
-          borderBottom: '1px solid var(--m-border)',
+          backgroundColor: 'transparent',
+          padding: '6px 16px 10px 16px',
           display: 'flex',
-          gap: '6px',
+          gap: '8px',
           overflowX: 'auto',
           flexShrink: 0
         }}
@@ -155,20 +197,35 @@ export default function ActivityListPage() {
           { key: 'all', label: '全部活动' },
           { key: 'ongoing', label: '进行中' },
           { key: 'upcoming', label: '即将开始' }
-        ].map(item => (
-          <button 
-            key={item.key}
-            onClick={() => setStatusFilter(item.key)}
-            className={`filter-item ${statusFilter === item.key ? 'active' : ''}`}
-            style={{ padding: '4px 10px', fontSize: '9px' }}
-          >
-            {item.label}
-          </button>
-        ))}
+        ].map(item => {
+          const isActive = statusFilter === item.key;
+          return (
+            <button 
+              key={item.key}
+              onClick={() => setStatusFilter(item.key)}
+              className="interactive-scale"
+              style={{ 
+                padding: '6px 14px', 
+                fontSize: '9.5px',
+                fontWeight: 800,
+                borderRadius: '16px',
+                border: 'none',
+                backgroundColor: isActive ? 'var(--m-primary)' : '#FFFFFF',
+                color: isActive ? '#FFFFFF' : 'var(--m-text-sub)',
+                cursor: 'pointer',
+                boxShadow: isActive ? 'none' : '0 1px 3px rgba(0, 0, 0, 0.05)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {item.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* 活动列表区 */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px', position: 'relative' }}>
+        <ReqBadge id="ACT-LIST" style={{ top: '6px', right: '8px' }} />
         {filteredActivities.map((act) => renderActivityCard(act))}
 
         {filteredActivities.length === 0 && (
@@ -306,7 +363,10 @@ export default function ActivityListPage() {
                 {searchHistory.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)' }}>历史搜索</span>
+                      <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        历史搜索
+                        <ReqBadge id="ACT-SEARCH" style={{ position: 'relative', top: '-1px' }} />
+                      </span>
                       <button 
                         onClick={() => setSearchHistory([])}
                         style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '2px', fontSize: '8px', color: 'var(--m-text-muted)', cursor: 'pointer' }}
@@ -350,7 +410,10 @@ export default function ActivityListPage() {
 
                 {/* 猜你想搜 */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                  <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)' }}>猜你想搜</span>
+                  <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    猜你想搜
+                    <ReqBadge id="ACT-SEARCH" style={{ position: 'relative', top: '-1px' }} />
+                  </span>
                   
                   <div 
                     style={{ 
@@ -411,7 +474,10 @@ export default function ActivityListPage() {
             ) : (
               /* 2. 搜索展示结果区 (只展示活动，无其他混杂内容) */
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <span style={{ fontSize: '8.5px', fontWeight: 800, color: 'var(--m-text-muted)' }}>搜索到的同好活动</span>
+                <span style={{ fontSize: '8.5px', fontWeight: 800, color: 'var(--m-text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  搜索到的同好活动
+                  <ReqBadge id="ACT-SEARCH" style={{ position: 'relative', top: '-1px' }} />
+                </span>
                 
                 {searchResultActivities.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column' }}>

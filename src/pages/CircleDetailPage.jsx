@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import { Users, BookOpen, Plus, Heart, MessageSquare, ArrowLeft } from 'lucide-react';
+import { ReqBadge } from '../components/ReqAnnotation';
 
 export default function CircleDetailPage() {
   const { 
@@ -44,15 +45,15 @@ export default function CircleDetailPage() {
   const getCircleCover = (id) => {
     switch (id) {
       case 'cir-001':
-        return 'https://images.unsplash.com/photo-1541562232579-512a21360020?auto=format&fit=crop&w=600&q=80'; // 运动番
+        return '/cover_sakura.png'; // 运动番
       case 'cir-002':
-        return 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80'; // 原神
+        return '/cover_sky.png'; // 原神
       case 'cir-003':
-        return 'https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?auto=format&fit=crop&w=600&q=80'; // 铁道/群星
+        return '/cover_sky.png'; // 铁道/群星
       case 'cir-004':
-        return 'https://images.unsplash.com/photo-1563089145-599997674d42?auto=format&fit=crop&w=600&q=80'; // 同人创作/漫展
+        return '/cover_muzi.png'; // 同人创作/漫展
       default:
-        return 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80';
+        return '/cover_muzi.png';
     }
   };
 
@@ -143,13 +144,27 @@ export default function CircleDetailPage() {
             zIndex: 12
           }}
         >
-          {circle.avatar.substring(0, 2)}
+          {circle.avatarImg ? (
+            <img 
+              src={circle.avatarImg} 
+              alt="circle_avatar" 
+              style={{ 
+                width: '100%', 
+                height: '100%', 
+                borderRadius: '13px', 
+                objectFit: 'cover' 
+              }} 
+            />
+          ) : (
+            circle.avatar.substring(0, 2)
+          )}
         </div>
 
         {/* 标题与基本统计信息 (头像在左侧悬浮，文字整体右移留出空隙) */}
         <div style={{ marginLeft: '62px', minHeight: '30px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <h2 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--m-text-main)', lineHeight: '1.2' }}>
-            {circle.name}
+          <h2 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--m-text-main)', lineHeight: '1.2', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>{circle.name}</span>
+            <ReqBadge id="CIR-DETAIL" style={{ position: 'relative', top: '-1px' }} />
           </h2>
           
           <div style={{ display: 'flex', gap: '8px', fontSize: '8px', color: 'var(--m-text-muted)', marginTop: '2px', fontWeight: 700 }}>
@@ -282,7 +297,8 @@ export default function CircleDetailPage() {
             </div>
           ))
         ) : (
-          <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--m-text-muted)', fontSize: '9px' }}>
+          <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--m-text-muted)', fontSize: '9px', position: 'relative' }}>
+            <ReqBadge id="CIR-DETAIL" style={{ top: '8px', right: '8px' }} />
             本同好营还没有人发布动态，快来做第一个发言的人吧！
           </div>
         )}
@@ -304,10 +320,11 @@ export default function CircleDetailPage() {
             zIndex: 42,
             gap: '2px'
           }}
-        >
-          <Plus size={12} strokeWidth={2.5} />
-          <span>发动态</span>
-        </button>
+          >
+            <Plus size={12} strokeWidth={2.5} />
+            <span>发动态</span>
+            <ReqBadge id="CIR-DETAIL" style={{ top: '-10px', right: '-10px' }} />
+          </button>
       ) : (
         /* 未加入同好营时：高保真悬浮毛玻璃胶囊提示栏，单点引导更强 */
         <div 
@@ -340,10 +357,12 @@ export default function CircleDetailPage() {
               fontSize: '8.5px', 
               height: '24px', 
               display: 'flex', 
-              alignItems: 'center' 
+              alignItems: 'center',
+              position: 'relative'
             }}
           >
             一键加入
+            <ReqBadge id="CIR-DETAIL" style={{ top: '-10px', right: '-10px' }} />
           </button>
         </div>
       )}
