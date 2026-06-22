@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useMemo } from 'react';
 
 const AppContext = createContext();
 
@@ -95,6 +95,13 @@ export function AppProvider({ children }) {
   const pushRoute = (page, params = {}, source = '') => {
     if (source) setSourceParam(source);
     setRouteStack(prev => [...prev, { page, params }]);
+    
+    // 自动清除对应会话的未读数 (MSG-004)
+    if (page === 'chat-window' && params.chatId) {
+      setMessages(prev => prev.map(chat => 
+        chat.id === params.chatId ? { ...chat, unread: 0 } : chat
+      ));
+    }
   };
 
   const popRoute = () => {
@@ -103,9 +110,14 @@ export function AppProvider({ children }) {
     }
   };
 
-  const resetToTab = (tabName) => {
-    setRouteStack([{ page: tabName, params: {} }]);
+  const resetToTab = (tabName, params = {}) => {
+    setRouteStack([{ page: tabName, params }]);
     setSourceParam(tabName);
+  };
+
+  const clearRouteStack = () => {
+    setRouteStack([{ page: 'circles', params: {} }]);
+    setSourceParam('circles');
   };
 
   const checkLogin = (onSuccess) => {
@@ -440,16 +452,30 @@ export function AppProvider({ children }) {
 
     // 6. 圈子列表 (完全不带 Emoji)
     const [circles, setCircles] = useState([
-      { id: 'cir-001', name: '排球少年同好营', avatar: '排球', avatarImg: '/avatar_neko.png', avatarBg: '#E9C6C6', memberCount: 1540, postCount: 284, intro: '乌野、音驹、青城、枭谷！全国大赛，在这里集结！', tags: ['运动番', '排球少年', '吃谷交换'] },
-      { id: 'cir-002', name: '原神提瓦特同盟', avatar: '原神', avatarImg: '/avatar_cos.png', avatarBg: '#D2DCD0', memberCount: 3980, postCount: 541, intro: '提瓦特大陆旅行者根据地。分享日常、游戏攻略与角色Cos。', tags: ['米哈游', '原神', 'Cosplay'] },
-      { id: 'cir-003', name: '崩坏星穹铁道分部', avatar: '铁道', avatarImg: '/avatar_poet.png', avatarBg: '#C7D7E8', memberCount: 2200, postCount: 310, intro: '愿此行，终抵群星。星穹列车开拓者沙龙。', tags: ['米哈游', '星穹铁道', '周边同人'] },
-      { id: 'cir-004', name: 'CP同人创作交流会', avatar: '同人', avatarImg: '/avatar_muzi.png', avatarBg: '#E6D7E8', memberCount: 1890, postCount: 198, intro: 'Comicup 线下大本营，交流同人本、无偿图、自制谷子情报。', tags: ['同人志', '无偿交换', '画师企划'] }
+      { id: 'cir-001', name: '排球少年同好营', avatar: '排球', avatarImg: '/avatar_neko.png', avatarBg: '#E9C6C6', coverImg: '/cover_sakura.png', memberCount: 1540, postCount: 284, intro: '乌野、音驹、青城、枭谷！全国大赛，在这里集结！', tags: ['运动番', '排球少年', '吃谷交换'] },
+      { id: 'cir-002', name: '原神提瓦特同盟', avatar: '原神', avatarImg: '/avatar_cos.png', avatarBg: '#D2DCD0', coverImg: '/cover_sky.png', memberCount: 3980, postCount: 541, intro: '提瓦特大陆旅行者根据地。分享日常、游戏攻略与角色Cos。', tags: ['米哈游', '原神', 'Cosplay'] },
+      { id: 'cir-003', name: '崩坏星穹铁道分部', avatar: '铁道', avatarImg: '/avatar_poet.png', avatarBg: '#C7D7E8', coverImg: '/cover_sky.png', memberCount: 2200, postCount: 310, intro: '愿此行，终抵群星。星穹列车开拓者沙龙。', tags: ['米哈游', '星穹铁道', '周边同人'] },
+      { id: 'cir-004', name: 'CP同人创作交流会', avatar: '同人', avatarImg: '/avatar_muzi.png', avatarBg: '#E6D7E8', coverImg: '/cover_muzi.png', memberCount: 1890, postCount: 198, intro: 'Comicup 线下大本营，交流同人本、无偿图、自制谷子情报。', tags: ['同人志', '无偿交换', '画师企划'] },
+      { id: 'cir-005', name: '蓝色监狱·Egoist社', avatar: '蓝监', avatarImg: '/avatar_neko.png', avatarBg: '#D6E4F0', coverImg: '/cover_sakura.png', memberCount: 1340, postCount: 156, intro: '寻找最强前锋，蓝色监狱同好集结地。分享漫画进度、日常扩列。', tags: ['运动番', '蓝色监狱', '二次元'] },
+      { id: 'cir-006', name: '绝区零绳网新艾利都', avatar: '绝区', avatarImg: '/avatar_cos.png', avatarBg: '#F3E5F5', coverImg: '/cover_sky.png', memberCount: 2100, postCount: 245, intro: '绳匠日常联络网。分享最新走格子攻略、音像店日常与朱鸢、艾莲Cos！', tags: ['米哈游', '绝区零', '游戏同好'] },
+      { id: 'cir-007', name: '明日方舟罗德岛沙龙', avatar: '方舟', avatarImg: '/avatar_poet.png', avatarBg: '#E0F2F1', coverImg: '/cover_sky.png', memberCount: 3120, postCount: 410, intro: '罗德岛博士线下事务室。精美周边吃谷展示、源石创作交流。', tags: ['游戏同好', '明日方舟', '周边同人'] },
+      { id: 'cir-008', name: '排球少年上海应援会', avatar: '排沪', avatarImg: '/avatar_neko.png', avatarBg: '#FFF3E0', coverImg: '/cover_sakura.png', memberCount: 950, postCount: 78, intro: '小排球上海地区同好交流，线下观影会、拼团吃谷以及痛包交流！', tags: ['运动番', '排球少年', '吃谷交换'] },
+      { id: 'cir-009', name: '三丽鸥吃谷互助会', avatar: '萌物', avatarImg: '/avatar_muzi.png', avatarBg: '#FCE4EC', coverImg: '/cover_muzi.png', memberCount: 1780, postCount: 165, intro: '库洛米、美乐蒂、大耳狗！正版三丽鸥盲盒、毛绒周边吃谷拼团互助。', tags: ['吃谷交换', '周边同人', '三丽鸥'] },
+      { id: 'cir-010', name: '国漫OC与企划工坊', avatar: '企划', avatarImg: '/avatar_muzi.png', avatarBg: '#E8EAF6', coverImg: '/cover_muzi.png', memberCount: 880, postCount: 64, intro: '原创角色（OC）人设展示，画师稿件交流，自制周边同人谷子企划！', tags: ['画师企划', '周边同人', '吃谷交换'] }
     ]);
 
     // 圈子加入状态
     const [circleMemberships, setCircleMemberships] = useState({
       'cir-001': true,
-      'cir-002': false
+      'cir-002': false,
+      'cir-003': true,
+      'cir-004': false,
+      'cir-005': true,
+      'cir-006': false,
+      'cir-007': false,
+      'cir-008': false,
+      'cir-009': false,
+      'cir-010': false
     });
 
     const toggleJoinCircle = (circleId) => {
@@ -471,23 +497,7 @@ export function AppProvider({ children }) {
       });
     };
 
-    // 创建圈子 (CIR-010 自建圈子功能)
-    const createCircle = (name, intro, tagsString) => {
-      const tags = tagsString.split(/[,，\s]+/).filter(Boolean);
-      const newCircle = {
-        id: `cir-${Date.now()}`,
-        name,
-        avatar: name.substring(0, 2),
-        avatarImg: '/avatar_neko.png',
-        avatarBg: '#EBDCD8',
-        memberCount: 1,
-        postCount: 0,
-        intro,
-        tags
-      };
-      setCircles(prev => [newCircle, ...prev]);
-      setCircleMemberships(prev => ({ ...prev, [newCircle.id]: true }));
-    };
+
 
     // 7. 动态列表 (去 Emoji)
     const [posts, setPosts] = useState([
@@ -662,6 +672,21 @@ export function AppProvider({ children }) {
       ]
     },
     {
+      id: 'chat-002',
+      title: '研磨厨_阿七',
+      isGroup: false,
+      relatedGroupId: null,
+      avatar: '/avatar_neko.png',
+      lastMessage: '好呀，那周末漫展见，记得带返图！',
+      time: '昨天',
+      unread: 0,
+      chatHistory: [
+        { sender: '研磨厨_阿七', avatar: '/avatar_neko.png', content: '在吗？看到你也关注了排球少年快闪～', time: '昨天 20:01', isSystem: false },
+        { sender: '木子', avatar: '/avatar_muzi.png', content: '在的！我准备周末去现场，你也去吗？', time: '昨天 20:05', isSystem: false },
+        { sender: '研磨厨_阿七', avatar: '/avatar_neko.png', content: '好呀，那周末漫展见，记得带返图！', time: '昨天 20:08', isSystem: false }
+      ]
+    },
+    {
       id: 'chat-sys',
       title: '系统通知',
       isGroup: false,
@@ -676,7 +701,25 @@ export function AppProvider({ children }) {
     }
   ]);
 
-  const [unreadCount, setUnreadCount] = useState(1);
+  const [notificationUnreads, setNotificationUnreads] = useState({
+    system: 2,
+    likes: 1,
+    followers: 0,
+    comments: 3
+  });
+
+  const resetNotificationUnread = (type) => {
+    setNotificationUnreads(prev => ({
+      ...prev,
+      [type]: 0
+    }));
+  };
+
+  const unreadCount = useMemo(() => {
+    const chatUnread = messages.reduce((sum, chat) => sum + (chat.unread || 0), 0);
+    const notifUnread = Object.values(notificationUnreads).reduce((sum, count) => sum + count, 0);
+    return chatUnread + notifUnread;
+  }, [messages, notificationUnreads]);
 
   const [strangerMessages, setStrangerMessages] = useState([
     {
@@ -721,30 +764,68 @@ export function AppProvider({ children }) {
 
   const sendStrangerReply = (threadId, text) => {
     if (!text.trim()) return { ok: false, reason: '消息不能为空' };
+    
+    const thread = strangerMessages.find(t => t.id === threadId);
+    if (!thread) return { ok: false, reason: '会话不存在' };
+    
+    if (thread.countBeforeReply <= 0) {
+      return { ok: false, reason: '等待对方回复后即可继续发送' };
+    }
+
     if (shouldBlockSevereFraud(text)) {
-      return { ok: false, severe: true, reason: '严重涉诈话术已被拦截' };
+      return { ok: false, severe: true, reason: '系统检测到违规风险，内容已被自动拦截。' };
     }
-    if (/\.(jpg|png|mp4)|图片|视频|语音|http|微信|电话|手机号|vx/i.test(text)) {
-      return { ok: false, reason: '回复前仅允许发送纯文本，图片/视频/联系方式已拦截' };
+    
+    if (/\.(jpg|png|mp4|webp)|图片|视频|语音|http|微信|电话|手机号|vx/i.test(text)) {
+      return { ok: false, reason: '对方回复前暂不支持发送多媒体内容' };
     }
-    setStrangerMessages(prev => prev.map(thread => {
-      if (thread.id !== threadId) return thread;
+
+    setStrangerMessages(prev => prev.map(t => {
+      if (t.id !== threadId) return t;
+      const newCount = Math.max(0, t.countBeforeReply - 1);
       const warning = shouldWarnRisk(text)
         ? [{ sender: '系统', content: '安全提示：消息包含联系方式或交易暗示，请勿脱离平台交易。', time: '刚刚', isSystem: true }]
         : [];
       return {
-        ...thread,
-        countBeforeReply: 0,
-        riskLevel: warning.length ? 'warning' : thread.riskLevel,
+        ...t,
+        countBeforeReply: newCount,
+        riskLevel: warning.length ? 'warning' : t.riskLevel,
         preview: text,
         time: '刚刚',
         chatHistory: [
-          ...thread.chatHistory,
+          ...t.chatHistory,
           { sender: user.name, content: text, time: '刚刚', isSystem: false },
           ...warning
         ]
       };
     }));
+
+    // 模拟对方回复，回复后将该陌生人消息自动升级并移入直聊会话 (MSG-044)
+    setTimeout(() => {
+      setStrangerMessages(prev => {
+        const currentThread = prev.find(t => t.id === threadId);
+        if (!currentThread) return prev;
+
+        const newChatId = `chat-pv-str-${Date.now()}`;
+        const newChat = {
+          id: newChatId,
+          title: currentThread.sender,
+          isGroup: false,
+          relatedGroupId: null,
+          avatar: currentThread.avatar,
+          lastMessage: `${currentThread.sender}：收到！很高兴能认识你。`,
+          time: '刚刚',
+          unread: 1,
+          chatHistory: [
+            ...currentThread.chatHistory,
+            { sender: currentThread.sender, avatar: currentThread.avatar, content: '收到！很高兴能认识你。', time: '刚刚', isSystem: false }
+          ]
+        };
+        setMessages(old => [newChat, ...old]);
+        return prev.filter(t => t.id !== threadId);
+      });
+    }, 2000);
+
     return { ok: true };
   };
 
@@ -1069,6 +1150,7 @@ export function AppProvider({ children }) {
   };
 
   // 发送消息
+  // 发送消息
   const sendMessage = (chatId, text) => {
     if (!text.trim()) return;
     setMessages(prev => prev.map(chat => {
@@ -1085,6 +1167,87 @@ export function AppProvider({ children }) {
       }
       return chat;
     }));
+
+    // 自动模拟回复机制 (针对 1v1 私聊，方便验证敏感词黄色横幅与未读数变化)
+    const chat = messages.find(c => c.id === chatId);
+    if (chat && !chat.isGroup) {
+      setTimeout(() => {
+        setMessages(prev => prev.map(c => {
+          if (c.id === chatId) {
+            let replyText = '收到！面基记得带痛包和谷子。';
+            if (/转账|定金|红包|钱|微信|vx/i.test(text)) {
+              replyText = '好啊，要不你先把定金转给我？我们加个微信私聊。';
+            }
+            return {
+              ...c,
+              lastMessage: `${c.title}：${replyText}`,
+              time: '刚刚',
+              unread: c.unread + 1,
+              chatHistory: [
+                ...c.chatHistory,
+                { sender: c.title, avatar: c.avatar, content: replyText, time: '刚刚', isSystem: false }
+              ]
+            };
+          }
+          return c;
+        }));
+      }, 1500);
+    }
+  };
+
+  // 主动发起私聊 (直聊与陌生人折叠智能分流，MSG-012, MSG-040, MSG-041)
+  const startPrivateChat = (profileId) => {
+    checkLogin(() => {
+      const profile = socialProfiles.find(p => p.id === profileId);
+      if (!profile) return;
+
+      const isMutual = profile.isFollowing && profile.isFollower;
+
+      if (isMutual) {
+        // 互关好友直聊
+        const existing = messages.find(m => !m.isGroup && m.title === profile.name);
+        if (existing) {
+          pushRoute('chat-window', { chatId: existing.id }, 'profile');
+        } else {
+          const newChatId = `chat-pv-${Date.now()}`;
+          const newChat = {
+            id: newChatId,
+            title: profile.name,
+            isGroup: false,
+            relatedGroupId: null,
+            avatar: profile.avatar,
+            lastMessage: '暂无消息，开始打个招呼吧~',
+            time: '刚刚',
+            unread: 0,
+            chatHistory: []
+          };
+          setMessages(prev => [newChat, ...prev]);
+          pushRoute('chat-window', { chatId: newChatId }, 'profile');
+        }
+      } else {
+        // 非好友折叠入陌生人消息
+        const existing = strangerMessages.find(s => s.sender === profile.name);
+        if (existing) {
+          pushRoute('stranger-chat', { threadId: existing.id }, 'profile');
+        } else {
+          const newThreadId = `str-pv-${Date.now()}`;
+          const newThread = {
+            id: newThreadId,
+            sender: profile.name,
+            avatar: profile.avatar,
+            preview: '暂无消息，开始打个招呼吧~',
+            time: '刚刚',
+            countBeforeReply: 3,
+            riskLevel: 'normal',
+            blocked: false,
+            reported: false,
+            chatHistory: []
+          };
+          setStrangerMessages(prev => [newThread, ...prev]);
+          pushRoute('stranger-chat', { threadId: newThreadId }, 'profile');
+        }
+      }
+    });
   };
 
   return (
@@ -1111,6 +1274,7 @@ export function AppProvider({ children }) {
       pushRoute,
       popRoute,
       resetToTab,
+      clearRouteStack,
       sourceParam,
       checkLogin,
       
@@ -1125,16 +1289,17 @@ export function AppProvider({ children }) {
       circles,
       circleMemberships,
       toggleJoinCircle,
-      createCircle,
       
       posts,
       toggleLikePost,
       addCommentToPost,
       createPost,
       
+      notificationUnreads,
+      resetNotificationUnread,
+      startPrivateChat,
       messages,
       unreadCount,
-      setUnreadCount,
       visibleStrangerMessages,
       blockedUsers,
       reportedRecords,

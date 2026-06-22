@@ -1,13 +1,26 @@
 import { ArrowLeft, UserPlus } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { ReqBadge } from '../components/ReqAnnotation';
+import LoginGuard from '../components/LoginGuard';
 
 export default function SocialListPage() {
-  const { routeStack, popRoute, socialProfiles, toggleFollowUser } = useApp();
+  const { routeStack, popRoute, socialProfiles, toggleFollowUser, user } = useApp();
   const currentRoute = routeStack[routeStack.length - 1];
   const type = currentRoute.params.type || 'followers';
   const isFollowers = type === 'followers';
   const rows = socialProfiles.filter(profile => isFollowers ? profile.isFollower : profile.isFollowing);
+
+  // 登录拦截：未登录不展示关注/粉丝列表
+  if (!user) {
+    return (
+      <LoginGuard
+        icon={UserPlus}
+        title="登录后查看社交关系"
+        desc="登录环境账户后即可查看关注与粉丝列表"
+        showBack
+      />
+    );
+  }
 
   return (
     <div className="w-full h-full bg-[#F6F5F2] flex flex-col select-none relative">

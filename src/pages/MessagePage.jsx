@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { MessageSquare, Bell, Heart, UserPlus, ArrowLeft, ShieldAlert, Trash2, Ban, Flag } from 'lucide-react';
 import { ReqBadge } from '../components/ReqAnnotation';
+import LoginGuard from '../components/LoginGuard';
 
 export default function MessagePage() {
   const {
@@ -13,12 +14,24 @@ export default function MessagePage() {
     blockStranger,
     reportStranger,
     groups,
-    user
+    user,
+    notificationUnreads,
+    resetNotificationUnread,
+    routeStack
   } = useApp();
 
+  // 支持测试面板一键直达：
+  //  params.initialView = 'strangers' 进入即展示陌生人消息
+  //  params.initialNotif = 'system'|'likes'|'followers'|'comments' 进入即展示对应通知详情
+  const initialParams = routeStack?.[routeStack.length - 1]?.params || {};
+  const { initialView, initialNotif, forceEmpty } = initialParams;
+
+  // 测试面板强制演示陌生人消息空状态
+  const strangerList = forceEmpty === 'strangers' ? [] : visibleStrangerMessages;
+
   // 用于控制当前展现哪一类通知详情的二级状态：null (主列表) | 'system' | 'likes' | 'followers' | 'comments'
-  const [activeNotificationType, setActiveNotificationType] = useState(null);
-  const [showStrangers, setShowStrangers] = useState(false);
+  const [activeNotificationType, setActiveNotificationType] = useState(initialNotif || null);
+  const [showStrangers, setShowStrangers] = useState(initialView === 'strangers');
 
   // 1. 过滤底部的聊天会话：排除系统通知账号，保留纯粹的群聊与私聊
   const chatConversations = messages.filter(chat => chat.id !== 'chat-sys');
@@ -65,6 +78,17 @@ export default function MessagePage() {
       default: return '';
     }
   };
+
+  // 登录拦截：未登录用户不展示任何私信/通知内容，仅显示登录引导
+  if (!user) {
+    return (
+      <LoginGuard
+        icon={MessageSquare}
+        title="登录后查看消息"
+        desc="登录环境账户后即可查看私信、群聊与系统通知"
+      />
+    );
+  }
 
   return (
     <div className="w-full h-full flex flex-col select-none relative" style={{ backgroundColor: 'var(--m-bg-canvas)' }}>
@@ -118,8 +142,8 @@ export default function MessagePage() {
               <span>陌生人回复前最多 3 条纯文本。含联系方式、链接、图片视频或严重涉诈话术会被限制或拦截。</span>
             </div>
 
-            {visibleStrangerMessages.length > 0 ? (
-              visibleStrangerMessages.map(thread => (
+            {strangerList.length > 0 ? (
+              strangerList.map(thread => (
                 <div key={thread.id} style={{ backgroundColor: 'var(--m-bg-card)', borderRadius: '12px', padding: '12px', border: '1px solid #EEEEEE', boxShadow: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div
                     onClick={() => pushRoute('stranger-chat', { threadId: thread.id }, 'messages')}
@@ -259,48 +283,148 @@ export default function MessagePage() {
               <ReqBadge id="MSG-NOTIF" style={{ top: '-10px', right: '-10px' }} />
               {/* 系统消息 */}
               <div
-                onClick={() => setActiveNotificationType('system')}
+                onClick={() => {
+                  setActiveNotificationType('system');
+                  resetNotificationUnread('system');
+                }}
                 className="interactive-scale"
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
               >
-                <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#E6D7E8', color: '#7D5591', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--m-shadow-sm)' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#E6D7E8', color: '#7D5591', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--m-shadow-sm)', position: 'relative' }}>
                   <Bell size={16} strokeWidth={2.2} />
+                  {notificationUnreads?.system > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-4px',
+                      backgroundColor: '#FF6384',
+                      color: '#FFFFFF',
+                      fontSize: '8px',
+                      fontWeight: 800,
+                      minWidth: '14px',
+                      height: '14px',
+                      padding: '0 3px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 6px rgba(255,99,132,0.35)',
+                      zIndex: 10
+                    }}>
+                      {notificationUnreads.system}
+                    </span>
+                  )}
                 </div>
                 <span style={{ fontSize: '8.5px', fontWeight: 700, color: 'var(--m-text-sub)' }}>系统消息</span>
               </div>
 
               {/* 赞与收藏 */}
               <div
-                onClick={() => setActiveNotificationType('likes')}
+                onClick={() => {
+                  setActiveNotificationType('likes');
+                  resetNotificationUnread('likes');
+                }}
                 className="interactive-scale"
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
               >
-                <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#F5E1E1', color: '#B56767', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--m-shadow-sm)' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#F5E1E1', color: '#B56767', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--m-shadow-sm)', position: 'relative' }}>
                   <Heart size={16} strokeWidth={2.2} />
+                  {notificationUnreads?.likes > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-4px',
+                      backgroundColor: '#FF6384',
+                      color: '#FFFFFF',
+                      fontSize: '8px',
+                      fontWeight: 800,
+                      minWidth: '14px',
+                      height: '14px',
+                      padding: '0 3px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 6px rgba(255,99,132,0.35)',
+                      zIndex: 10
+                    }}>
+                      {notificationUnreads.likes}
+                    </span>
+                  )}
                 </div>
                 <span style={{ fontSize: '8.5px', fontWeight: 700, color: 'var(--m-text-sub)' }}>赞与收藏</span>
               </div>
 
               {/* 新增关注 */}
               <div
-                onClick={() => setActiveNotificationType('followers')}
+                onClick={() => {
+                  setActiveNotificationType('followers');
+                  resetNotificationUnread('followers');
+                }}
                 className="interactive-scale"
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
               >
-                <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#E2ECE4', color: '#5B7A63', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--m-shadow-sm)' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#E2ECE4', color: '#5B7A63', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--m-shadow-sm)', position: 'relative' }}>
                   <UserPlus size={16} strokeWidth={2.2} />
+                  {notificationUnreads?.followers > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-4px',
+                      backgroundColor: '#FF6384',
+                      color: '#FFFFFF',
+                      fontSize: '8px',
+                      fontWeight: 800,
+                      minWidth: '14px',
+                      height: '14px',
+                      padding: '0 3px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 6px rgba(255,99,132,0.35)',
+                      zIndex: 10
+                    }}>
+                      {notificationUnreads.followers}
+                    </span>
+                  )}
                 </div>
                 <span style={{ fontSize: '8.5px', fontWeight: 700, color: 'var(--m-text-sub)' }}>新增关注</span>
               </div>
 
               {/* 评论与@ */}
               <div
-                onClick={() => setActiveNotificationType('comments')}
+                onClick={() => {
+                  setActiveNotificationType('comments');
+                  resetNotificationUnread('comments');
+                }}
                 className="interactive-scale"
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
               >
-                <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#E1ECF5', color: '#557591', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--m-shadow-sm)' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '12px', backgroundColor: '#E1ECF5', color: '#557591', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--m-shadow-sm)', position: 'relative' }}>
                   <MessageSquare size={16} strokeWidth={2.2} />
+                  {notificationUnreads?.comments > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-4px',
+                      backgroundColor: '#FF6384',
+                      color: '#FFFFFF',
+                      fontSize: '8px',
+                      fontWeight: 800,
+                      minWidth: '14px',
+                      height: '14px',
+                      padding: '0 3px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 6px rgba(255,99,132,0.35)',
+                      zIndex: 10
+                    }}>
+                      {notificationUnreads.comments}
+                    </span>
+                  )}
                 </div>
                 <span style={{ fontSize: '8.5px', fontWeight: 700, color: 'var(--m-text-sub)' }}>评论与@</span>
               </div>

@@ -1,26 +1,35 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { Search, Plus, Sparkles, ChevronRight, Heart, MessageSquare, Star, Compass, Volleyball, Orbit, Edit3, HeartHandshake, ArrowLeft, Trash2, X } from 'lucide-react';
+import { Search, Plus, Sparkles, ChevronRight, Heart, MessageSquare, Star, Compass, Volleyball, Orbit, Edit3, HeartHandshake, ArrowLeft, Trash2, X, UserPlus } from 'lucide-react';
 
 export default function CircleHomepage() {
-  const { 
-    circles, 
-    circleMemberships, 
+  const {
+    circles,
+    circleMemberships,
     toggleJoinCircle,
-    posts, 
-    toggleLikePost, 
-    pushRoute, 
+    posts,
+    toggleLikePost,
+    pushRoute,
     checkLogin,
     user,
-    openPublishFlow
+    openPublishFlow,
+    socialProfiles,
+    routeStack
   } = useApp();
 
-  
+  // 读取测试面板/路由传入的初始 Tab（用于一键直达「关注/圈子」Tab 空状态）
+  const routeParams = routeStack?.[routeStack.length - 1]?.params || {};
+  const initialTab = routeParams.initialTab;
+  // 测试面板强制空状态演示：forceEmpty = 'following' | 'circles'
+  const forceEmpty = routeParams.forceEmpty;
+
   // 1. 顶部 Tab 三段式导航：'following' (关注) | 'discover' (发现) | 'circles' (圈子)
-  const [activeSubTab, setActiveSubTab] = useState('discover');
+  const [activeSubTab, setActiveSubTab] = useState(initialTab || 'discover');
   
-  // 探索新同好营弹窗控制状态
-  const [showExploreModal, setShowExploreModal] = useState(false);
+  // 探索新同好营弹窗控制状态（支持测试面板一键直达：params.openDrawer = 'explore'）
+  const [showExploreModal, setShowExploreModal] = useState(
+    initialTab === 'circles' && routeStack?.[routeStack.length - 1]?.params?.openDrawer === 'explore'
+  );
   const [exploreCategory, setExploreCategory] = useState('all');
   
   // 2. 搜索查询、搜索激活与分类胶囊状态
@@ -29,6 +38,8 @@ export default function CircleHomepage() {
   const [searchHistory, setSearchHistory] = useState(['排球少年', '吃谷交换', '大悦城快闪']);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [discoverTagFilter, setDiscoverTagFilter] = useState('推荐');
+  const [isSearchSubmitted, setIsSearchSubmitted] = useState(false);
+  const [searchActiveTab, setSearchActiveTab] = useState('all');
 
   // 3. 圈子到矢量图标的配合映射
   const getCircleIcon = (id) => {
@@ -61,10 +72,10 @@ export default function CircleHomepage() {
       }
       
       if (categoryFilter === 'anime') {
-        return c.tags.includes('运动番') || c.id === 'cir-001';
+        return c.tags.includes('运动番') || c.tags.includes('动漫') || c.id === 'cir-001';
       }
       if (categoryFilter === 'game') {
-        return c.tags.includes('原神') || c.tags.includes('米哈游') || c.id === 'cir-002' || c.id === 'cir-003';
+        return c.tags.includes('原神') || c.tags.includes('米哈游') || c.tags.includes('游戏同好') || c.id === 'cir-002' || c.id === 'cir-003';
       }
       if (categoryFilter === 'goods') {
         return c.tags.includes('吃谷交换') || c.tags.includes('周边同人') || c.id === 'cir-004';
@@ -78,6 +89,12 @@ export default function CircleHomepage() {
     return filteredCircles.filter(c => circleMemberships[c.id]);
   }, [filteredCircles, circleMemberships]);
 
+  // 圈子Tab「我加入的圈子」横滑用列表（不受顶部搜索/分类影响，仅受测试面板 forceEmpty 控制）
+  const myJoinedCircles = useMemo(() => {
+    if (forceEmpty === 'circles') return [];
+    return visibleCircles.filter(c => circleMemberships[c.id]);
+  }, [visibleCircles, circleMemberships, forceEmpty]);
+
   const recommendedCircles = useMemo(() => {
     return filteredCircles.filter(c => !circleMemberships[c.id]);
   }, [filteredCircles, circleMemberships]);
@@ -90,10 +107,10 @@ export default function CircleHomepage() {
     return allRecommendedCircles.filter(c => {
       if (exploreCategory === 'all') return true;
       if (exploreCategory === 'anime') {
-        return c.tags.includes('运动番') || c.id === 'cir-001';
+        return c.tags.includes('运动番') || c.tags.includes('动漫') || c.id === 'cir-001';
       }
       if (exploreCategory === 'game') {
-        return c.tags.includes('原神') || c.tags.includes('米哈游') || c.id === 'cir-002' || c.id === 'cir-003';
+        return c.tags.includes('原神') || c.tags.includes('米哈游') || c.tags.includes('游戏同好') || c.id === 'cir-002' || c.id === 'cir-003';
       }
       if (exploreCategory === 'goods') {
         return c.tags.includes('吃谷交换') || c.tags.includes('周边同人') || c.id === 'cir-004';
@@ -101,6 +118,59 @@ export default function CircleHomepage() {
       return true;
     });
   }, [allRecommendedCircles, exploreCategory]);
+
+  // 4B. 搜索专用匹配计算与联想推荐
+  const searchedCircles = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    return visibleCircles.filter(c => {
+      const matchesName = c.name.toLowerCase().includes(q);
+      const matchesTags = c.tags.some(t => t.toLowerCase().includes(q));
+      return matchesName || matchesTags;
+    });
+  }, [visibleCircles, searchQuery]);
+
+  const searchedPosts = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    return posts.filter(p => {
+      if (p.status !== 'normal') return false;
+      const circle = circles.find(c => c.id === p.circleId);
+      const circleName = circle ? circle.name.toLowerCase() : '';
+      const matchesContent = p.content.toLowerCase().includes(q);
+      const matchesCircle = circleName.includes(q);
+      const matchesTags = p.topics ? p.topics.some(t => t.toLowerCase().includes(q)) : false;
+      const matchesAuthor = p.author && p.author.name && p.author.name.toLowerCase().includes(q);
+      return matchesContent || matchesCircle || matchesTags || matchesAuthor;
+    });
+  }, [posts, circles, searchQuery]);
+
+  const searchSuggestions = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    const list = [];
+    
+    // 1. 优先推荐匹配的同好营名称
+    visibleCircles.forEach(c => {
+      if (c.name.toLowerCase().includes(q)) {
+        list.push({ type: 'circle', text: c.name, id: c.id });
+      }
+    });
+
+    // 2. 匹配预设的话题或高频词
+    const commonKeywords = [
+      '排球少年', '原神', '崩坏星穹铁道', '吃谷交换', '周边同人', 
+      '蓝色监狱', '绝区零', '明日方舟', '三丽鸥', '痛包展示', 
+      'Coser返图', '原创OC', '漫展面基', '大悦城快闪', 'CP30'
+    ];
+    commonKeywords.forEach(word => {
+      if (word.toLowerCase().includes(q) && !list.some(item => item.text.toLowerCase() === word.toLowerCase())) {
+        list.push({ type: 'keyword', text: word });
+      }
+    });
+
+    return list.slice(0, 8);
+  }, [visibleCircles, searchQuery]);
 
   // 5. 动态流逻辑
   const publicPosts = useMemo(() => {
@@ -142,14 +212,23 @@ export default function CircleHomepage() {
 
   const followingPosts = useMemo(() => {
     if (!user) return [];
-    return posts.filter(p => p.status === 'normal' && circleMemberships[p.circleId]);
-  }, [posts, circleMemberships, user]);
+    // PRD-02: 关注Tab只显示"关注的人"的动态（跨所有圈子，不限于已加入圈子）
+    const followingNames = socialProfiles
+      .filter(p => p.isFollowing)
+      .map(p => p.name);
+    return posts.filter(p =>
+      p.status === 'normal' &&
+      followingNames.includes(p.author.name)
+    );
+  }, [posts, socialProfiles, user]);
 
-  const handleCreateCircleClick = () => {
-    checkLogin(() => {
-      pushRoute('create-circle');
-    });
-  };
+  const followingCount = useMemo(() => {
+    // 测试面板强制演示「未关注任何人」空状态
+    if (forceEmpty === 'following') return 0;
+    return socialProfiles.filter(p => p.isFollowing).length;
+  }, [socialProfiles, forceEmpty]);
+
+
 
   // 瀑布流单卡片渲染组件 (高保真二次元风格，无 Emoji)
   const renderWaterfallCard = (p) => {
@@ -314,7 +393,7 @@ export default function CircleHomepage() {
     );
   };
 
-  // 专用于“同好集市”瀑布流的单卡片渲染
+  // 专用于"同好集市"瀑布流的单卡片渲染
   const renderMarketWaterfallCard = (p) => {
     const c = circles.find(item => item.id === p.circleId);
     const hasImage = p.images && p.images.length > 0;
@@ -592,12 +671,30 @@ export default function CircleHomepage() {
           <div>
             {!user ? (
               <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--m-text-sub)', fontSize: '9.5px' }}>
-                请先在右侧状态面板或“我的”页面登录，以同步您关注同好营的专属动态。
+                请先在右侧状态面板或"我的"页面登录，以同步您关注同好营的专属动态。
+              </div>
+            ) : followingCount === 0 ? (
+              <div
+                style={{
+                  padding: '60px 20px',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  color: 'var(--m-text-sub)',
+                  gap: '8px'
+                }}
+              >
+                <UserPlus size={32} className="text-neutral-300" />
+                <h4 style={{ fontSize: '10.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>关注你感兴趣的人</h4>
+                <p style={{ fontSize: '8.5px', color: 'var(--m-text-muted)', maxWidth: '190px', lineHeight: '1.4' }}>
+                  在发现页浏览动态，关注喜欢的创作者，他们的新内容会在这里展示。
+                </p>
               </div>
             ) : followingPosts.length > 0 ? (
               renderWaterfallGrid(followingPosts)
             ) : (
-              <div 
+              <div
                 style={{
                   padding: '60px 20px',
                   textAlign: 'center',
@@ -611,7 +708,7 @@ export default function CircleHomepage() {
                 <HeartHandshake size={32} className="text-neutral-300 animate-pulse" />
                 <h4 style={{ fontSize: '10.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>尚未收到关注更新</h4>
                 <p style={{ fontSize: '8.5px', color: 'var(--m-text-muted)', maxWidth: '190px', lineHeight: '1.4' }}>
-                  您入驻的同好营最近还没有新动态。可以前往“发现”广场浏览或发布新内容。
+                  您关注的用户最近还没有新动态。可以前往"发现"广场浏览或发布新内容。
                 </p>
               </div>
             )}
@@ -696,79 +793,28 @@ export default function CircleHomepage() {
           </div>
         )}
 
-        {/* 选项卡三：圈子目录 (重构为第3种推荐：置物架滑轨 + 同好集市瀑布流) */}
+        {/* 选项卡三：圈子目录 (平铺网格化重构：已加入滑轨 + 分类Pill + 2列推荐网格) */}
         {activeSubTab === 'circles' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             
-            {/* 顶部：同好营置物架 (Stories 圆角卡片横滑轨道，极具沉浸感) */}
+            {/* 1. 我加入的圈子 (Stories 横滑滑轨 + 末尾「+」号 / CIR-015、CIR-015A) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-sub)', paddingLeft: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                📌 同好营安利墙 ({circles.length})
+              <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-sub)', paddingLeft: '4px' }}>
+                📌 我加入的同好营 ({myJoinedCircles.length})
               </span>
-              
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  gap: '10px', 
-                  overflowX: 'auto', 
-                  padding: '4px 4px 8px 4px', 
+
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '10px',
+                  overflowX: 'auto',
+                  padding: '4px 4px 8px 4px',
                   scrollbarWidth: 'none',
                   msOverflowStyle: 'none'
                 }}
               >
-                {/* 探索新同好营虚线卡片 */}
-                <div
-                  onClick={() => setShowExploreModal(true)}
-                  className="interactive-scale"
-                  style={{
-                    flexShrink: 0,
-                    width: '105px',
-                    height: '75px',
-                    borderRadius: '12px',
-                    border: '1.5px dashed var(--m-primary)',
-                    backgroundColor: 'rgba(168, 129, 194, 0.05)',
-                    padding: '8px 10px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 6px rgba(168, 129, 194, 0.03)'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div 
-                      style={{ 
-                        width: '22px', 
-                        height: '22px', 
-                        borderRadius: '50%', 
-                        backgroundColor: '#FFFFFF', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        border: '1px solid var(--m-primary)'
-                      }}
-                    >
-                      <Search size={11} className="text-[#A881C2]" />
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                    <h5 style={{ fontSize: '8.5px', fontWeight: 800, color: 'var(--m-primary)', margin: 0 }}>
-                      探索新同好营
-                    </h5>
-                    <span style={{ fontSize: '6.5px', color: 'var(--m-primary)', opacity: 0.8 }}>
-                      寻找未加入圈子
-                    </span>
-                  </div>
-                </div>
-
-                {circles.map(c => {
-                  const isJoined = circleMemberships[c.id];
-                  
-                  // 根据同好营配对本地水彩插画
-                  let coverImg = '/cover_sakura.png';
-                  if (c.id === 'cir-001') coverImg = '/cover_sakura.png';
-                  else if (c.id === 'cir-002' || c.id === 'cir-003') coverImg = '/cover_sky.png';
-                  else if (c.id === 'cir-004') coverImg = '/cover_muzi.png';
+                {myJoinedCircles.map(c => {
+                  const coverImg = c.coverImg || '/cover_sakura.png';
 
                   return (
                     <div
@@ -777,8 +823,8 @@ export default function CircleHomepage() {
                       className="interactive-scale"
                       style={{
                         flexShrink: 0,
-                        width: '105px',
-                        height: '75px',
+                        width: '95px',
+                        height: '70px',
                         borderRadius: '12px',
                         border: '1.5px solid rgba(226,229,232,0.85)',
                         backgroundImage: `linear-gradient(to bottom, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.88) 100%), url(${coverImg})`,
@@ -792,113 +838,311 @@ export default function CircleHomepage() {
                         boxShadow: '0 2px 6px rgba(168, 129, 194, 0.03)'
                       }}
                     >
-                      {/* 头像 + 快捷按钮 */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        {c.avatarImg ? (
-                          <img 
-                            src={c.avatarImg} 
-                            alt="c_av" 
-                            style={{ 
-                              width: '22px', 
-                              height: '22px', 
-                              borderRadius: '50%', 
-                              objectFit: 'cover',
-                              border: '1.5px solid #FFFFFF',
-                              boxShadow: 'var(--m-shadow-sm)'
-                            }}
-                          />
-                        ) : (
-                          <div 
-                            style={{ 
-                              width: '22px', 
-                              height: '22px', 
-                              borderRadius: '50%', 
-                              backgroundColor: c.avatarBg || '#EBDCD8', 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'center', 
-                              fontSize: '8.5px', 
-                              fontWeight: 800, 
-                              color: 'var(--m-text-main)', 
-                              border: '1.5px solid #FFFFFF',
-                              boxShadow: 'var(--m-shadow-sm)'
-                            }}
-                          >
-                            {c.avatar.substring(0, 2)}
-                          </div>
-                        )}
-                        
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleJoinCircle(c.id);
-                          }}
-                          className="interactive-scale"
+                      {c.avatarImg ? (
+                        <img
+                          src={c.avatarImg}
+                          alt="c_av"
                           style={{
-                            background: isJoined ? 'rgba(168, 129, 194, 0.15)' : 'var(--m-primary)',
-                            color: isJoined ? 'var(--m-primary)' : '#FFFFFF',
-                            border: 'none',
+                            width: '20px',
+                            height: '20px',
                             borderRadius: '50%',
-                            width: '14px',
-                            height: '14px',
+                            objectFit: 'cover',
+                            border: '1px solid #FFFFFF'
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            backgroundColor: c.avatarBg || '#EBDCD8',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            cursor: 'pointer',
-                            fontSize: '8.5px',
-                            fontWeight: 900
+                            fontSize: '8px',
+                            fontWeight: 800,
+                            color: 'var(--m-text-main)',
+                            border: '1px solid #FFFFFF'
                           }}
                         >
-                          {isJoined ? '✓' : '+'}
-                        </button>
-                      </div>
+                          {c.avatar.substring(0, 2)}
+                        </div>
+                      )}
 
-                      {/* 标题 */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                        <h5 
-                          style={{ 
-                            fontSize: '8.5px', 
-                            fontWeight: 800, 
-                            color: 'var(--m-text-main)', 
-                            margin: 0, 
-                            overflow: 'hidden', 
-                            textOverflow: 'ellipsis', 
-                            whiteSpace: 'nowrap',
-                            maxWidth: '90px' 
-                          }}
-                        >
+                        <h5 style={{ fontSize: '8px', fontWeight: 800, color: 'var(--m-text-main)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80px' }}>
                           {c.name}
                         </h5>
-                        <span style={{ fontSize: '6.5px', color: 'var(--m-text-muted)' }}>
+                        <span style={{ fontSize: '6px', color: 'var(--m-text-muted)' }}>
                           {c.memberCount} 同好
                         </span>
                       </div>
                     </div>
                   );
                 })}
+
+                {/* 横滑末尾「+」号：虚线边框，点击弹出「发现更多同好圈子」抽屉 (CIR-015A) */}
+                <div
+                  onClick={() => setShowExploreModal(true)}
+                  className="interactive-scale"
+                  style={{
+                    flexShrink: 0,
+                    width: '95px',
+                    height: '70px',
+                    borderRadius: '12px',
+                    border: '1.5px dashed rgba(168, 129, 194, 0.55)',
+                    backgroundColor: 'rgba(168, 129, 194, 0.04)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Plus size={20} color="var(--m-primary)" strokeWidth={2.5} />
+                  <span style={{ fontSize: '7px', fontWeight: 800, color: 'var(--m-primary)' }}>发现圈子</span>
+                </div>
               </div>
-            </div>
 
-            {/* 底部：同好集市瀑布流 (双列卡片动态展示) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px dashed var(--m-border)', paddingTop: '12px', marginTop: '4px' }}>
-              <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-sub)', paddingLeft: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                🛍️ 逛逛同好集市动态 ({publicPosts.length})
-              </span>
-
-              {publicPosts.length > 0 ? (
-                renderMarketWaterfallGrid(publicPosts)
-              ) : (
-                <div style={{ padding: '30px', textAlign: 'center', fontSize: '9px', color: 'var(--m-text-muted)' }}>
-                  集市里空空如也，发布第一条动态吧！
+              {myJoinedCircles.length === 0 && (
+                <div style={{ padding: '4px 10px 0', textAlign: 'center', color: 'var(--m-text-muted)', fontSize: '8px' }}>
+                  点击「+」发现并加入你的第一个同好营
                 </div>
               )}
             </div>
+
+            {/* 2. 我的圈子动态 (来自已加入圈子的内容流) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-sub)', paddingLeft: '4px' }}>
+                📝 我的圈子动态
+              </span>
+
+              {joinedCircles.length > 0 ? (
+                followingPosts.length > 0 ? (
+                  renderWaterfallGrid(
+                    posts.filter(p =>
+                      p.status === 'normal' &&
+                      joinedCircles.some(c => c.id === p.circleId)
+                    )
+                  )
+                ) : (
+                  <div style={{ padding: '24px 10px', textAlign: 'center', backgroundColor: '#FFFFFF', borderRadius: '12px', border: '1px solid rgba(226, 229, 232, 0.45)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                    <Sparkles size={20} className="text-[#B0B7BD]" />
+                    <span style={{ fontSize: '8.5px', color: 'var(--m-text-muted)' }}>这些圈子还没有动态哦~</span>
+                  </div>
+                )
+              ) : (
+                <div style={{ padding: '24px 10px', textAlign: 'center', backgroundColor: '#FFFFFF', borderRadius: '12px', border: '1px solid rgba(226, 229, 232, 0.45)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <HeartHandshake size={20} className="text-[#A8BDD1]" />
+                  <span style={{ fontSize: '8.5px', color: 'var(--m-text-muted)' }}>加入你的第一个同好营，开始发现有趣的圈子内容</span>
+                  <button
+                    onClick={() => setShowExploreModal(true)}
+                    className="interactive-scale"
+                    style={{
+                      marginTop: '6px',
+                      padding: '6px 16px',
+                      backgroundColor: 'var(--m-primary)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '9999px',
+                      fontSize: '8px',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    发现圈子
+                  </button>
+                </div>
+              )}
+            </div>
+
 
           </div>
         )}
 
       </div>
 
+
+      {/* ============================================================== */}
+      {/* 底部抽屉：发现更多同好圈子 (CIR-015A / CIR-016 / CIR-017) */}
+      {showExploreModal && (
+        <div
+          onClick={() => setShowExploreModal(false)}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            zIndex: 130,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderTopLeftRadius: '18px',
+              borderTopRightRadius: '18px',
+              maxHeight: '78%',
+              display: 'flex',
+              flexDirection: 'column',
+              animation: 'slideUp 0.25s ease-out'
+            }}
+          >
+            {/* 拖拽手柄 */}
+            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '8px' }}>
+              <div style={{ width: '32px', height: '4px', borderRadius: '9999px', backgroundColor: '#E0E0E0' }} />
+            </div>
+
+            {/* 标题 + 关闭 */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px 6px' }}>
+              <h3 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--m-text-main)', margin: 0 }}>发现更多同好圈子</h3>
+              <button
+                onClick={() => setShowExploreModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex' }}
+              >
+                <X size={16} className="text-neutral-400" />
+              </button>
+            </div>
+
+            {/* 搜索框 */}
+            <div style={{ padding: '0 16px 8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#F4F4F6', borderRadius: '9999px', padding: '6px 12px' }}>
+                <Search size={12} className="text-neutral-400" />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="搜索同好营名称"
+                  style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: '9px', color: 'var(--m-text-main)' }}
+                />
+              </div>
+            </div>
+
+            {/* 分类筛选 Pill */}
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '0 16px 8px', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {[
+                { key: 'all', label: '全部' },
+                { key: 'anime', label: '动漫相关' },
+                { key: 'game', label: '游戏同好' },
+                { key: 'goods', label: '周边吃谷' }
+              ].map(cat => {
+                const isActive = exploreCategory === cat.key;
+                return (
+                  <button
+                    key={cat.key}
+                    onClick={() => setExploreCategory(cat.key)}
+                    className="interactive-scale"
+                    style={{
+                      background: isActive ? 'var(--m-primary)' : '#FFFFFF',
+                      color: isActive ? '#FFFFFF' : 'var(--m-text-sub)',
+                      border: isActive ? 'none' : '1px solid rgba(226, 229, 232, 0.7)',
+                      borderRadius: '9999px',
+                      padding: '4px 14px',
+                      fontSize: '8.5px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0
+                    }}
+                  >
+                    {cat.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 圈子列表（纵向滚动） */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {filteredExploreCircles
+                .filter(c => !searchQuery.trim() || c.name.includes(searchQuery.trim()))
+                .length > 0 ? (
+                filteredExploreCircles
+                  .filter(c => !searchQuery.trim() || c.name.includes(searchQuery.trim()))
+                  .map(c => {
+                    const joined = circleMemberships[c.id];
+                    return (
+                      <div
+                        key={c.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '10px',
+                          backgroundColor: '#FFFFFF',
+                          borderRadius: '12px',
+                          border: '1px solid rgba(226, 229, 232, 0.7)'
+                        }}
+                      >
+                        {/* 头像 */}
+                        <div
+                          onClick={() => { setShowExploreModal(false); pushRoute('circle-detail', { circleId: c.id }, 'circle_home'); }}
+                          style={{
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '10px',
+                            backgroundColor: c.avatarBg || '#EBDCD8',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {c.avatarImg ? (
+                            <img src={c.avatarImg} alt="av" style={{ width: '100%', height: '100%', borderRadius: '10px', objectFit: 'cover' }} />
+                          ) : (
+                            <span style={{ fontSize: '11px', fontWeight: 900, color: 'var(--m-text-main)' }}>{c.avatar.substring(0, 2)}</span>
+                          )}
+                        </div>
+
+                        {/* 名称 + 成员 + 简介 */}
+                        <div
+                          onClick={() => { setShowExploreModal(false); pushRoute('circle-detail', { circleId: c.id }, 'circle_home'); }}
+                          style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+                        >
+                          <h4 style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)', margin: 0, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                            {c.name}
+                          </h4>
+                          <span style={{ fontSize: '7px', color: 'var(--m-text-muted)' }}>{c.memberCount} 同好 • {c.postCount} 动态</span>
+                          <p style={{ fontSize: '7.5px', color: 'var(--m-text-sub)', margin: '1px 0 0', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                            {c.intro}
+                          </p>
+                        </div>
+
+                        {/* 加入 / 已加入 按钮 */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleJoinCircle(c.id); }}
+                          className="interactive-scale"
+                          style={{
+                            flexShrink: 0,
+                            backgroundColor: joined ? '#F0F0F2' : 'var(--m-primary)',
+                            color: joined ? 'var(--m-text-muted)' : '#FFFFFF',
+                            border: 'none',
+                            borderRadius: '9999px',
+                            padding: '5px 14px',
+                            fontSize: '8px',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {joined ? '已加入' : '加入'}
+                        </button>
+                      </div>
+                    );
+                  })
+              ) : (
+                <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--m-text-muted)', fontSize: '8.5px' }}>
+                  没有找到符合条件的同好营
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 悬浮发布按钮已统一由底部导航栏 "+" 承担，此处不再重复 */}
       {/* 抖音级沉浸式全屏搜索层 */}
@@ -930,6 +1174,8 @@ export default function CircleHomepage() {
               onClick={() => {
                 setIsSearchOverlayOpen(false);
                 setSearchQuery('');
+                setIsSearchSubmitted(false);
+                setSearchActiveTab('all');
               }}
               className="interactive-scale"
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--m-text-main)', display: 'flex', alignItems: 'center' }}
@@ -955,9 +1201,13 @@ export default function CircleHomepage() {
                 type="text"
                 placeholder="搜索同好营、漫展话题、扩列动态..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setIsSearchSubmitted(false);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && searchQuery.trim()) {
+                    setIsSearchSubmitted(true);
                     if (!searchHistory.includes(searchQuery.trim())) {
                       setSearchHistory(prev => [searchQuery.trim(), ...prev].slice(0, 8));
                     }
@@ -974,7 +1224,11 @@ export default function CircleHomepage() {
               />
               {searchQuery && (
                 <button 
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => {
+                    setSearchQuery('');
+                    setIsSearchSubmitted(false);
+                    setSearchActiveTab('all');
+                  }}
                   style={{ background: 'none', border: 'none', color: 'var(--m-text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}
                 >
                   <X size={10} />
@@ -986,6 +1240,7 @@ export default function CircleHomepage() {
             <button 
               onClick={() => {
                 if (searchQuery.trim()) {
+                  setIsSearchSubmitted(true);
                   if (!searchHistory.includes(searchQuery.trim())) {
                     setSearchHistory(prev => [searchQuery.trim(), ...prev].slice(0, 8));
                   }
@@ -1007,8 +1262,8 @@ export default function CircleHomepage() {
           {/* 搜索体内容区 */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '14px', backgroundColor: '#F8F9FA' }}>
             
-            {/* 1. 默认展示推荐话题与历史记录 */}
-            {!searchQuery.trim() ? (
+            {/* 1. 空搜索态（未输入） */}
+            {!searchQuery.trim() && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 
                 {/* 历史记录 */}
@@ -1040,7 +1295,10 @@ export default function CircleHomepage() {
                           }}
                         >
                           <span 
-                            onClick={() => setSearchQuery(item)}
+                            onClick={() => {
+                              setSearchQuery(item);
+                              setIsSearchSubmitted(true);
+                            }}
                             style={{ fontSize: '8.5px', color: 'var(--m-text-sub)', cursor: 'pointer', fontWeight: 800 }}
                           >
                             {item}
@@ -1087,6 +1345,7 @@ export default function CircleHomepage() {
                         key={index}
                         onClick={() => {
                           setSearchQuery(item.word);
+                          setIsSearchSubmitted(true);
                           if (!searchHistory.includes(item.word)) {
                             setSearchHistory(prev => [item.word, ...prev].slice(0, 8));
                           }
@@ -1117,305 +1376,332 @@ export default function CircleHomepage() {
                 </div>
 
               </div>
-            ) : (
-              /* 2. 搜索展示结果区 */
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                
-                {/* 匹配的同好营 */}
-                {filteredCircles.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <span style={{ fontSize: '8.5px', fontWeight: 800, color: 'var(--m-text-muted)' }}>相关同好营</span>
+            )}
+
+            {/* 2. 输入联想态（有输入但未提交） */}
+            {searchQuery.trim() && !isSearchSubmitted && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#FFFFFF', borderRadius: '12px', padding: '6px', border: '1px solid rgba(226,229,232,0.45)', boxShadow: 'var(--m-shadow-sm)' }}>
+                {searchSuggestions.length > 0 ? (
+                  searchSuggestions.map((item, index) => (
+                    <div
+                      key={index}
+                      onClick={() => {
+                        setSearchQuery(item.text);
+                        setIsSearchSubmitted(true);
+                        if (!searchHistory.includes(item.text)) {
+                          setSearchHistory(prev => [item.text, ...prev].slice(0, 8));
+                        }
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        borderBottom: index < searchSuggestions.length - 1 ? '1px solid #F2F3F5' : 'none',
+                        cursor: 'pointer'
+                      }}
+                      className="interactive-scale"
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                        {item.type === 'circle' ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
+                            <span style={{ fontSize: '7.5px', color: 'var(--m-primary)', fontWeight: 800, backgroundColor: 'rgba(168,129,194,0.1)', padding: '2px 6px', borderRadius: '4px', whiteSpace: 'nowrap', flexShrink: 0 }}>同好营</span>
+                            <span style={{ fontSize: '9.5px', color: 'var(--m-text-main)', fontWeight: 800, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1 }}>{item.text}</span>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
+                            <Search size={10} className="text-neutral-400" style={{ flexShrink: 0 }} />
+                            <span style={{ fontSize: '9.5px', color: 'var(--m-text-sub)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1 }}>{item.text}</span>
+                          </div>
+                        )}
+                      </div>
+                      <ChevronRight size={10} className="text-neutral-300" style={{ flexShrink: 0 }} />
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ padding: '14px', textAlign: 'center', fontSize: '9.5px', color: 'var(--m-text-muted)' }}>
+                    按回车搜索："{searchQuery}"
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 3. 搜索结果态（有输入且已提交） */}
+            {searchQuery.trim() && isSearchSubmitted && (
+              <div>
+                {/* 整体无结果时的全局空状态 */}
+                {searchedCircles.length === 0 && searchedPosts.length === 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px', gap: '12px', textAlign: 'center' }}>
+                    <Sparkles size={36} className="text-neutral-300 animate-pulse" />
+                    <h4 style={{ fontSize: '11px', fontWeight: 800, color: 'var(--m-text-main)' }}>没有找到相关的内容</h4>
+                    <p style={{ fontSize: '8.5px', color: 'var(--m-text-muted)', maxWidth: '200px', lineHeight: '1.4' }}>
+                      换个词试试，或者点击下方热门词直接搜索吧~
+                    </p>
                     
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {filteredCircles.slice(0, 2).map(c => (
-                        <div 
-                          key={c.id}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center', marginTop: '12px' }}>
+                      {['排球少年', '吃谷', '原神FES', '痛包', '展会面基'].map(word => (
+                        <button
+                          key={word}
                           onClick={() => {
-                            setIsSearchOverlayOpen(false);
-                            pushRoute('circle-detail', { circleId: c.id }, 'circle_home');
+                            setSearchQuery(word);
+                            setIsSearchSubmitted(true);
+                            if (!searchHistory.includes(word)) {
+                              setSearchHistory(prev => [word, ...prev].slice(0, 8));
+                            }
                           }}
+                          className="interactive-scale"
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
                             backgroundColor: '#FFFFFF',
-                            borderRadius: '12px',
-                            padding: '8px 10px',
-                            border: '1px solid rgba(226,229,232,0.45)',
+                            border: '1px solid rgba(226,229,232,0.65)',
+                            borderRadius: '9999px',
+                            padding: '4px 12px',
+                            fontSize: '8.5px',
+                            fontWeight: 800,
+                            color: 'var(--m-text-sub)',
                             cursor: 'pointer'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
-                            <div style={{ width: '26px', height: '26px', borderRadius: '50%', backgroundColor: c.avatarBg + '60', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>
-                              {c.avatar}
-                            </div>
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                              <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)', display: 'block' }}>{c.name}</span>
-                              <span style={{ fontSize: '7.5px', color: 'var(--m-text-sub)' }}>{c.memberCount} 成员 • {c.intro.substring(0, 15)}...</span>
-                            </div>
-                          </div>
-                          <ChevronRight size={10} className="text-neutral-400" />
-                        </div>
+                          {word}
+                        </button>
                       ))}
                     </div>
                   </div>
-                )}
-
-                {/* 相关的同好动态 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span style={{ fontSize: '8.5px', fontWeight: 800, color: 'var(--m-text-muted)' }}>相关同好动态</span>
-                  {publicPosts.length > 0 ? (
-                    renderWaterfallGrid(publicPosts)
-                  ) : (
-                    <div style={{ padding: '30px', textAlign: 'center', fontSize: '9px', color: 'var(--m-text-muted)', backgroundColor: '#FFFFFF', borderRadius: '12px' }}>
-                      未找到相关的同好动态
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    
+                    {/* 二级 Tab 切换栏 */}
+                    <div style={{ display: 'flex', gap: '18px', borderBottom: '1px solid rgba(226,229,232,0.4)', paddingBottom: '4px', marginBottom: '4px' }}>
+                      {[
+                        { key: 'all', label: '综合' },
+                        { key: 'circles', label: '同好营' },
+                        { key: 'posts', label: '动态' }
+                      ].map(tab => {
+                        const isActive = searchActiveTab === tab.key;
+                        return (
+                          <button
+                            key={tab.key}
+                            onClick={() => setSearchActiveTab(tab.key)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              fontSize: '10.5px',
+                              fontWeight: isActive ? 800 : 500,
+                              color: isActive ? 'var(--m-primary)' : 'var(--m-text-sub)',
+                              cursor: 'pointer',
+                              position: 'relative',
+                              padding: '2px 0 6px 0',
+                              transition: 'color 0.2s ease'
+                            }}
+                          >
+                            <span>{tab.label}</span>
+                            {isActive && (
+                              <div 
+                                style={{ 
+                                  position: 'absolute', 
+                                  bottom: 0, 
+                                  left: 0, 
+                                  right: 0, 
+                                  height: '2.5px', 
+                                  backgroundColor: 'var(--m-primary)', 
+                                  borderRadius: '9999px' 
+                                }} 
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
-                  )}
-                </div>
 
+                    {/* Tab 1: 综合 */}
+                    {searchActiveTab === 'all' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        
+                        {/* 匹配同好营 (最多3个) */}
+                        {searchedCircles.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <span style={{ fontSize: '8.5px', fontWeight: 800, color: 'var(--m-text-muted)', paddingLeft: '2px' }}>相关同好营</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              {searchedCircles.slice(0, 3).map(c => {
+                                const isJoined = !!circleMemberships[c.id];
+                                return (
+                                  <div 
+                                    key={c.id}
+                                    onClick={() => {
+                                      setIsSearchOverlayOpen(false);
+                                      pushRoute('circle-detail', { circleId: c.id }, 'circle_home');
+                                    }}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      backgroundColor: '#FFFFFF',
+                                      borderRadius: '12px',
+                                      padding: '8px 10px',
+                                      border: '1px solid rgba(226,229,232,0.45)',
+                                      cursor: 'pointer',
+                                      boxShadow: 'var(--m-shadow-sm)'
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                                      {c.avatarImg ? (
+                                        <img src={c.avatarImg} alt="av" style={{ width: '26px', height: '26px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
+                                      ) : (
+                                        <div style={{ width: '26px', height: '26px', borderRadius: '8px', backgroundColor: c.avatarBg || '#EBDCD8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)', flexShrink: 0 }}>
+                                          {c.avatar.substring(0, 2)}
+                                        </div>
+                                      )}
+                                      <div style={{ minWidth: 0, flex: 1 }}>
+                                        <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{c.name}</span>
+                                        <span style={{ fontSize: '7.5px', color: 'var(--m-text-sub)', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{c.memberCount} 成员 • {c.intro}</span>
+                                      </div>
+                                    </div>
+                                    
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleJoinCircle(c.id);
+                                      }}
+                                      className="interactive-scale"
+                                      style={{
+                                        backgroundColor: isJoined ? '#F0F1F4' : 'var(--m-primary)',
+                                        color: isJoined ? 'var(--m-text-sub)' : '#FFFFFF',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        padding: '4px 10px',
+                                        fontSize: '8px',
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        flexShrink: 0,
+                                        marginLeft: '8px'
+                                      }}
+                                    >
+                                      {isJoined ? '已加入' : '+ 加入'}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                              
+                              {searchedCircles.length > 3 && (
+                                <div 
+                                  onClick={() => setSearchActiveTab('circles')}
+                                  style={{ textAlign: 'center', fontSize: '8.5px', color: 'var(--m-primary)', fontWeight: 800, cursor: 'pointer', padding: '4px 0' }}
+                                >
+                                  查看全部相关同好营 ({searchedCircles.length}) &gt;
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 相关同好动态 */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <span style={{ fontSize: '8.5px', fontWeight: 800, color: 'var(--m-text-muted)', paddingLeft: '2px' }}>相关同好动态</span>
+                          {searchedPosts.length > 0 ? (
+                            renderWaterfallGrid(searchedPosts)
+                          ) : (
+                            <div style={{ padding: '30px', textAlign: 'center', fontSize: '9px', color: 'var(--m-text-muted)', backgroundColor: '#FFFFFF', borderRadius: '12px' }}>
+                              未找到相关的同好动态
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tab 2: 同好营 */}
+                    {searchActiveTab === 'circles' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {searchedCircles.length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            {searchedCircles.map(c => {
+                              const isJoined = !!circleMemberships[c.id];
+                              return (
+                                <div 
+                                  key={c.id}
+                                  onClick={() => {
+                                    setIsSearchOverlayOpen(false);
+                                    pushRoute('circle-detail', { circleId: c.id }, 'circle_home');
+                                  }}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    backgroundColor: '#FFFFFF',
+                                    borderRadius: '12px',
+                                    padding: '8px 10px',
+                                    border: '1px solid rgba(226,229,232,0.45)',
+                                    cursor: 'pointer',
+                                    boxShadow: 'var(--m-shadow-sm)'
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                                    {c.avatarImg ? (
+                                      <img src={c.avatarImg} alt="av" style={{ width: '26px', height: '26px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
+                                    ) : (
+                                      <div style={{ width: '26px', height: '26px', borderRadius: '8px', backgroundColor: c.avatarBg || '#EBDCD8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)', flexShrink: 0 }}>
+                                        {c.avatar.substring(0, 2)}
+                                      </div>
+                                    )}
+                                    <div style={{ minWidth: 0, flex: 1 }}>
+                                      <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{c.name}</span>
+                                      <span style={{ fontSize: '7.5px', color: 'var(--m-text-sub)', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{c.memberCount} 成员 • {c.intro}</span>
+                                    </div>
+                                  </div>
+                                  
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleJoinCircle(c.id);
+                                    }}
+                                    className="interactive-scale"
+                                    style={{
+                                      backgroundColor: isJoined ? '#F0F1F4' : 'var(--m-primary)',
+                                      color: isJoined ? 'var(--m-text-sub)' : '#FFFFFF',
+                                      border: 'none',
+                                      borderRadius: '6px',
+                                      padding: '4px 10px',
+                                      fontSize: '8px',
+                                      fontWeight: 800,
+                                      cursor: 'pointer',
+                                      flexShrink: 0,
+                                      marginLeft: '8px'
+                                    }}
+                                  >
+                                    {isJoined ? '已加入' : '+ 加入'}
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div style={{ padding: '30px', textAlign: 'center', fontSize: '9px', color: 'var(--m-text-muted)', backgroundColor: '#FFFFFF', borderRadius: '12px' }}>
+                            未找到相关的同好营
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Tab 3: 动态 */}
+                    {searchActiveTab === 'posts' && (
+                      <div>
+                        {searchedPosts.length > 0 ? (
+                          renderWaterfallGrid(searchedPosts)
+                        ) : (
+                          <div style={{ padding: '30px', textAlign: 'center', fontSize: '9px', color: 'var(--m-text-muted)', backgroundColor: '#FFFFFF', borderRadius: '12px' }}>
+                            未找到相关的同好动态
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                  </div>
+                )}
               </div>
             )}
 
           </div>
         </div>
       )}
-      {/* 探索新同好营弹窗 */}
-      {showExploreModal && (
-        <div 
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-            backdropFilter: 'blur(2px)',
-            zIndex: 150,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px'
-          }}
-          onClick={() => setShowExploreModal(false)}
-        >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '20px',
-              border: '2px solid var(--m-primary)',
-              width: '90%',
-              maxWidth: '320px',
-              maxHeight: '400px',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 8px 24px rgba(168, 129, 194, 0.15)',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-          >
-            {/* 顶部胶带贴纸装饰 */}
-            <div 
-              style={{
-                position: 'absolute',
-                top: '-4px',
-                left: '50%',
-                transform: 'translateX(-50%) rotate(-2deg)',
-                width: '70px',
-                height: '16px',
-                backgroundColor: 'rgba(168, 129, 194, 0.3)',
-                border: '1px dashed var(--m-primary)',
-                zIndex: 10
-              }}
-            />
 
-            {/* 弹窗头部 */}
-            <div 
-              style={{
-                padding: '16px 16px 10px 16px',
-                borderBottom: '1px dashed var(--m-border)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexShrink: 0,
-                marginTop: '6px'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Sparkles size={14} className="text-[#A881C2]" />
-                <h3 style={{ fontSize: '11px', fontWeight: 800, color: 'var(--m-text-main)', margin: 0 }}>探索新同好营</h3>
-              </div>
-              <button 
-                onClick={() => setShowExploreModal(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--m-text-muted)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '4px'
-                }}
-              >
-                <X size={14} />
-              </button>
-            </div>
-
-            {/* 弹窗分类切换标签 */}
-            <div 
-              style={{
-                display: 'flex',
-                gap: '8px',
-                padding: '8px 12px 6px 12px',
-                borderBottom: '1px dashed var(--m-border)',
-                overflowX: 'auto',
-                scrollbarWidth: 'none',
-                msOverflowStyle: 'none',
-                flexShrink: 0
-              }}
-            >
-              {[
-                { key: 'all', label: '全部' },
-                { key: 'anime', label: '动漫' },
-                { key: 'game', label: '游戏' },
-                { key: 'goods', label: '吃谷' }
-              ].map(cat => {
-                const isActive = exploreCategory === cat.key;
-                return (
-                  <button
-                    key={cat.key}
-                    onClick={() => setExploreCategory(cat.key)}
-                    className="interactive-scale"
-                    style={{
-                      background: isActive ? 'var(--m-primary)' : 'rgba(168, 129, 194, 0.08)',
-                      color: isActive ? '#FFFFFF' : 'var(--m-text-sub)',
-                      border: isActive ? 'none' : '1px dashed rgba(168, 129, 194, 0.3)',
-                      borderRadius: '8px',
-                      padding: '3px 8px',
-                      fontSize: '8px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    {cat.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* 弹窗列表内容 */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
-              {allRecommendedCircles.length > 0 ? (
-                filteredExploreCircles.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {filteredExploreCircles.map(c => {
-                      // 为同好营选用我们本地生成的图库进行插图补齐
-                      let coverImg = '/cover_sakura.png';
-                      if (c.id === 'cir-001') coverImg = '/cover_sakura.png';
-                      else if (c.id === 'cir-002' || c.id === 'cir-003') coverImg = '/cover_sky.png';
-                      else if (c.id === 'cir-004') coverImg = '/cover_muzi.png';
-
-                      return (
-                        <div 
-                          key={c.id}
-                          onClick={() => {
-                            setShowExploreModal(false);
-                            pushRoute('circle-detail', { circleId: c.id }, 'circle_home');
-                          }}
-                          className="interactive-scale"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            backgroundColor: '#FDFCF7',
-                            borderRadius: '12px',
-                            padding: '8px 10px',
-                            border: '1px solid rgba(168, 129, 194, 0.15)',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
-                            {c.avatarImg ? (
-                              <img 
-                                src={c.avatarImg} 
-                                alt="c_av" 
-                                style={{ 
-                                  width: '26px', 
-                                  height: '26px', 
-                                  borderRadius: '50%', 
-                                  objectFit: 'cover',
-                                  border: '1px solid #FFFFFF',
-                                  flexShrink: 0
-                                }}
-                              />
-                            ) : (
-                              <div 
-                                style={{ 
-                                  width: '26px', 
-                                  height: '26px', 
-                                  borderRadius: '50%', 
-                                  backgroundColor: c.avatarBg || '#EBDCD8', 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center', 
-                                  fontSize: '10px', 
-                                  fontWeight: 800,
-                                  color: 'var(--m-text-main)',
-                                  border: '1px solid #FFFFFF',
-                                  flexShrink: 0
-                                }}
-                              >
-                                {c.avatar.substring(0, 2)}
-                              </div>
-                            )}
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                              <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)', display: 'block' }}>{c.name}</span>
-                              <span style={{ fontSize: '7.5px', color: 'var(--m-text-muted)' }}>{c.memberCount} 成员 • {c.intro.substring(0, 15)}...</span>
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleJoinCircle(c.id);
-                            }}
-                            className="interactive-scale"
-                            style={{
-                              background: 'var(--m-primary)',
-                              color: '#FFFFFF',
-                              border: 'none',
-                              borderRadius: '6px',
-                              padding: '3px 8px',
-                              cursor: 'pointer',
-                              fontSize: '7.5px',
-                              fontWeight: 800
-                            }}
-                          >
-                            + 加入
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div style={{ padding: '40px 10px', textAlign: 'center', color: 'var(--m-text-muted)', fontSize: '8.5px' }}>
-                    该分类下的同好营您已全部加入啦！
-                  </div>
-                )
-              ) : (
-                <div style={{ padding: '40px 10px', textAlign: 'center', color: 'var(--m-text-muted)', fontSize: '8.5px' }}>
-                  🎉 您已加入了所有的同好营！
-                </div>
-              )}
-            </div>
-            
-            {/* 弹窗底部提示 */}
-            <div style={{ padding: '8px 12px', borderTop: '1px dashed var(--m-border)', backgroundColor: '#FAF9F6', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
-              <span style={{ fontSize: '7px', color: 'var(--m-text-muted)' }}>点击即可查看圈子详情</span>
-            </div>
-
-          </div>
-        </div>
-      )}
 
     </div>
   );

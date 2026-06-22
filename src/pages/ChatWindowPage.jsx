@@ -1,11 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import { Send, Calendar, MapPin, LogOut } from 'lucide-react';
+import { Send, Calendar, MapPin, LogOut, ShieldAlert, MoreVertical, Ban, Flag, Trash2 } from 'lucide-react';
 import { ReqBadge } from '../components/ReqAnnotation';
+import ErrorState from '../components/ErrorState';
+import { MessageSquareX } from 'lucide-react';
 
 export default function ChatWindowPage() {
-  const { routeStack, messages, sendMessage, user, groups, activities, exitGroup, pushRoute } = useApp();
+  const { routeStack, messages, sendMessage, user, groups, activities, exitGroup, pushRoute, deleteConversation, popRoute } = useApp();
   const [inputText, setInputText] = useState('');
+  // 支持测试面板一键直达：params.openMenu = true 时进入即展开私聊更多菜单
+  const [showMoreMenu, setShowMoreMenu] = useState(routeStack?.[routeStack.length - 1]?.params?.openMenu === true);
   const chatEndRef = useRef(null);
 
   // 1. 获取对应的聊天群
@@ -17,6 +21,11 @@ export default function ChatWindowPage() {
   const isGroupMember = relatedGroup && user && relatedGroup.members.some(member => member.name === user.name);
   const isCreator = relatedGroup && user && relatedGroup.creator.name === user.name;
 
+  const hasRiskKeyword = chat?.chatHistory?.some(msg => {
+    if (msg.isSystem) return false;
+    return /转账|红包|钱|微信|vx|开房|定金/i.test(msg.content || '');
+  });
+
   useEffect(() => {
     // 自动滚动到底部
     if (chatEndRef.current) {
@@ -24,11 +33,22 @@ export default function ChatWindowPage() {
     }
   }, [chat?.chatHistory]);
 
+  useEffect(() => {
+    // 点击外部关闭菜单
+    const handleClickOutside = () => {
+      if (showMoreMenu) setShowMoreMenu(false);
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showMoreMenu]);
+
   if (!chat) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>
-        <h3>聊天窗不存在</h3>
-      </div>
+      <ErrorState
+        icon={MessageSquareX}
+        title="聊天会话不存在"
+        desc="该会话可能已被删除或已退出群聊"
+      />
     );
   }
 
@@ -76,6 +96,147 @@ export default function ChatWindowPage() {
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {/* 1v1私聊Header */}
+      {!relatedGroup && !chat.isGroup && chat.id !== 'chat-sys' && (
+        <div style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid var(--m-border)', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0, position: 'relative' }}>
+          <img src={chat.avatar} alt="avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h3 style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)', margin: 0 }}>
+              {chat.title}
+            </h3>
+          </div>
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMoreMenu(!showMoreMenu);
+              }}
+              style={{ border: 'none', backgroundColor: 'transparent', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+            >
+              <MoreVertical size={16} className="text-[#6B7280]" />
+            </button>
+            {showMoreMenu && (
+              <div onClick={(e) => e.stopPropagation()} style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                backgroundColor: '#FFFFFF',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                minWidth: '120px',
+                zIndex: 50,
+                overflow: 'hidden'
+              }}>
+                <button
+                  onClick={() => {
+                    if (confirm('确定删除此会话吗？')) {
+                      deleteConversation(chat.id);
+                      setShowMoreMenu(false);
+                      popRoute();
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    textAlign: 'left',
+                    fontSize: '8.5px',
+                    fontWeight: 700,
+                    color: 'var(--m-text-main)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <Trash2 size={12} />
+                  删除会话
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm('拉黑后将拒收对方消息并移除该会话，确定继续吗？')) {
+                      deleteConversation(chat.id);
+                      setShowMoreMenu(false);
+                      popRoute();
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    textAlign: 'left',
+                    fontSize: '8.5px',
+                    fontWeight: 700,
+                    color: 'var(--m-text-main)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <Ban size={12} />
+                  拉黑用户
+                </button>
+                <button
+                  onClick={() => {
+                    const reason = prompt('请选择或输入举报类型：诈骗 / 骚扰 / 虚假信息', '诈骗');
+                    if (reason) {
+                      alert(`已提交举报：${reason}，我们将在 24 小时内核实处理。`);
+                      setShowMoreMenu(false);
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    textAlign: 'left',
+                    fontSize: '8.5px',
+                    fontWeight: 700,
+                    color: '#EF4444',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FEF2F2'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <Flag size={12} />
+                  举报用户
+                </button>
+              </div>
+            )}
+          </div>
+          <ReqBadge id="MSG-RISK" style={{ top: '6px', right: '48px' }} />
+        </div>
+      )}
+
+      {hasRiskKeyword && (
+        <div style={{
+          backgroundColor: '#FFF8E7',
+          borderBottom: '1px solid #F1D69A',
+          padding: '8px 12px',
+          color: '#8C6F3D',
+          fontSize: '8.5px',
+          lineHeight: '1.45',
+          display: 'flex',
+          gap: '6px',
+          alignItems: 'flex-start',
+          flexShrink: 0,
+          zIndex: 30
+        }}>
+          <ShieldAlert size={12} style={{ flexShrink: 0, marginTop: '1px' }} />
+          <span>⚠️ 安全提示：对方提及资金或线下敏感场景，请勿轻易转账或前往私密场所，线下见面请选择展会等公共区域。</span>
         </div>
       )}
 

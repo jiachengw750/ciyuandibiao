@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Send, ShieldAlert, Ban, Flag, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { ReqBadge } from '../components/ReqAnnotation';
+import LoginGuard from '../components/LoginGuard';
+import ErrorState from '../components/ErrorState';
 
 export default function StrangerChatPage() {
   const {
@@ -11,7 +13,8 @@ export default function StrangerChatPage() {
     deleteStrangerThread,
     blockStranger,
     reportStranger,
-    pushRoute
+    pushRoute,
+    user
   } = useApp();
   const currentRoute = routeStack[routeStack.length - 1];
   const threadId = currentRoute.params.threadId;
@@ -19,11 +22,23 @@ export default function StrangerChatPage() {
   const [inputText, setInputText] = useState('');
   const [riskNotice, setRiskNotice] = useState('');
 
+  // 登录拦截：未登录不展示陌生人私信内容
+  if (!user) {
+    return (
+      <LoginGuard
+        title="登录后查看私信"
+        desc="登录环境账户后即可查看并回复陌生人消息"
+        showBack
+      />
+    );
+  }
+
   if (!thread) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>
-        <h3>陌生人消息不存在或已被隐藏</h3>
-      </div>
+      <ErrorState
+        title="消息不存在"
+        desc="该陌生人消息可能已被隐藏、删除或对方已被拉黑"
+      />
     );
   }
 
@@ -115,12 +130,37 @@ export default function StrangerChatPage() {
           <input
             type="text"
             maxLength={800}
-            placeholder="仅可回复纯文本..."
+            placeholder={thread.countBeforeReply <= 0 ? "等待对方回复后即可继续发送" : "仅可回复纯文本..."}
+            disabled={thread.countBeforeReply <= 0}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            style={{ flex: 1, height: '34px', borderRadius: '9999px', border: '1px solid var(--m-border)', padding: '0 14px', fontSize: '9.5px', color: 'var(--m-text-main)', backgroundColor: '#F8F9FA' }}
+            style={{ 
+              flex: 1, 
+              height: '34px', 
+              borderRadius: '9999px', 
+              border: '1px solid var(--m-border)', 
+              padding: '0 14px', 
+              fontSize: '9.5px', 
+              color: 'var(--m-text-main)', 
+              backgroundColor: thread.countBeforeReply <= 0 ? '#EFEFEF' : '#F8F9FA',
+              cursor: thread.countBeforeReply <= 0 ? 'not-allowed' : 'text'
+            }}
           />
-          <button type="submit" className="btn-round btn-primary interactive-scale" style={{ height: '34px', width: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+          <button 
+            type="submit" 
+            disabled={thread.countBeforeReply <= 0}
+            className={`btn-round btn-primary ${thread.countBeforeReply <= 0 ? '' : 'interactive-scale'}`} 
+            style={{ 
+              height: '34px', 
+              width: '34px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              position: 'relative',
+              opacity: thread.countBeforeReply <= 0 ? 0.4 : 1,
+              cursor: thread.countBeforeReply <= 0 ? 'not-allowed' : 'pointer'
+            }}
+          >
             <Send size={12} />
             <ReqBadge id="MSG-RISK" style={{ top: '-10px', right: '-10px' }} />
           </button>

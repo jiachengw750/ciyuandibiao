@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Search, Calendar, MapPin, ArrowLeft, Trash2, X, AlertCircle, Users } from 'lucide-react';
+import { Search, Calendar, MapPin, ArrowLeft, Trash2, X, AlertCircle, Users, Heart, Star } from 'lucide-react';
 import { ReqBadge } from '../components/ReqAnnotation';
 
 export default function ActivityListPage() {
@@ -8,16 +8,38 @@ export default function ActivityListPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOverlayOpen, setIsSearchOverlayOpen] = useState(false);
   const [searchHistory, setSearchHistory] = useState(['CP30', 'BW2026', '漫展面基']);
-  const [statusFilter, setStatusFilter] = useState('all'); // all, upcoming, ongoing
+  const [statusFilter, setStatusFilter] = useState('all'); // all, upcoming, ongoing, ended
 
   // 1. 过滤掉下架活动
   const visibleActivities = activities.filter(a => a.status !== 'offline');
 
-  // 2. 按状态和搜索词过滤主页面活动
-  const filteredActivities = visibleActivities.filter(a => {
+  // 2. 按状态和搜索词过滤主页面活动并排序 (进行中 > 即将开始 > 已结束)
+  let filteredActivities = visibleActivities.filter(a => {
     if (statusFilter === 'upcoming' && a.status !== 'upcoming') return false;
     if (statusFilter === 'ongoing' && a.status !== 'ongoing') return false;
+    if (statusFilter === 'ended' && a.status !== 'ended') return false;
     return true;
+  });
+
+  filteredActivities.sort((a, b) => {
+    const statusOrder = { ongoing: 1, upcoming: 2, ended: 3, cancelled: 4 };
+    const orderA = statusOrder[a.status] || 99;
+    const orderB = statusOrder[b.status] || 99;
+    
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+    
+    if (a.status === 'ongoing') {
+      return new Date(b.startTime) - new Date(a.startTime);
+    }
+    if (a.status === 'upcoming') {
+      return new Date(a.startTime) - new Date(b.startTime);
+    }
+    if (a.status === 'ended') {
+      return new Date(b.endTime) - new Date(a.endTime);
+    }
+    return 0;
   });
 
   // 3. 搜索面板中的活动搜索结果 (只搜索活动类型)
@@ -106,37 +128,63 @@ export default function ActivityListPage() {
             {act.title}{getActivityIcon(act.title)}
           </h3>
           
-          {/* 单行排列的所有辅助信息 */}
+          {/* 辅助信息第一行：时间与地点 */}
           <div 
             style={{ 
               display: 'flex', 
               alignItems: 'center', 
               gap: '6px', 
-              fontSize: '8px', 
-              color: 'var(--m-primary)', 
-              fontWeight: 800 
+              fontSize: '8.5px', 
+              color: 'var(--m-text-sub)', 
+              fontWeight: 600 
             }}
           >
             {/* 时间 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-              <Calendar size={10} color="var(--m-primary)" strokeWidth={2.5} />
+              <Calendar size={10} className="text-neutral-400" strokeWidth={2.5} />
               <span>{getShortDate(act.date)}</span>
             </div>
             
-            <span style={{ opacity: 0.5 }}>|</span>
+            <span style={{ opacity: 0.3 }}>|</span>
             
             {/* 地点 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-              <MapPin size={10} color="var(--m-primary)" strokeWidth={2.5} />
+              <MapPin size={10} className="text-neutral-400" strokeWidth={2.5} />
               <span>{getShortLocation(act.location, act.title)}</span>
             </div>
-            
-            <span style={{ opacity: 0.5 }}>|</span>
-            
+          </div>
+
+          {/* 辅助信息第二行：面基团、想去与收藏 */}
+          <div 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              fontSize: '8.5px', 
+              color: 'var(--m-primary)', 
+              fontWeight: 800 
+            }}
+          >
             {/* 招募团 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
               <Users size={10} color="var(--m-primary)" strokeWidth={2.5} />
               <span>{getGroupInfo(act.id, act.title)}</span>
+            </div>
+
+            <span style={{ opacity: 0.3 }}>|</span>
+
+            {/* 想去 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2.5px' }}>
+              <Heart size={9.5} className={relation.wanted ? 'fill-current text-[#c94b7c]' : 'text-neutral-400'} strokeWidth={2.5} />
+              <span style={{ color: relation.wanted ? '#c94b7c' : 'var(--m-text-sub)' }}>{act.wantedCount + (relation.wanted ? 1 : 0)} 想去</span>
+            </div>
+
+            <span style={{ opacity: 0.3 }}>|</span>
+
+            {/* 收藏 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2.5px' }}>
+              <Star size={9.5} className={relation.favorited ? 'fill-current text-[#DAB86B]' : 'text-neutral-400'} strokeWidth={2.5} />
+              <span style={{ color: relation.favorited ? '#DAB86B' : 'var(--m-text-sub)' }}>{act.favoritedCount + (relation.favorited ? 1 : 0)} 收藏</span>
             </div>
           </div>
         </div>
@@ -196,7 +244,8 @@ export default function ActivityListPage() {
         {[
           { key: 'all', label: '全部活动' },
           { key: 'ongoing', label: '进行中' },
-          { key: 'upcoming', label: '即将开始' }
+          { key: 'upcoming', label: '即将开始' },
+          { key: 'ended', label: '已结束' }
         ].map(item => {
           const isActive = statusFilter === item.key;
           return (

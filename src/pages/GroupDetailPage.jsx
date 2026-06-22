@@ -15,10 +15,17 @@ export default function GroupDetailPage() {
     withdrawGroupApplication,
     exitGroup,
     cancelGroup,
-    removeGroupMember
+    removeGroupMember,
+    socialProfiles
   } = useApp();
 
-  // 获取当前开团 ID
+  const getUserIdByName = (name) => {
+    if (user && name === user.name) return user.id;
+    const profile = socialProfiles?.find(p => p.name === name);
+    return profile ? profile.id : null;
+  };
+
+  // 获取当前开团 ID。
   const currentRoute = routeStack[routeStack.length - 1];
   const groupId = currentRoute.params.groupId;
 
@@ -131,22 +138,10 @@ export default function GroupDetailPage() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '9px', color: 'var(--m-text-sub)', borderTop: '1px solid rgba(226,229,232,0.4)', paddingTop: '10px' }}>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <Calendar size={11} className="text-neutral-400" />
-              <span>集合时间：{new Date(group.startTime).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+              <Users size={11} className="text-neutral-400" />
+              <span>成团席位：{group.currentMembers} / {group.maxMembers} 人 (最高上限40人)</span>
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <DollarSign size={11} className="text-neutral-400" />
-              <span>人均花销：{group.price}</span>
-            </div>
-	            <div style={{ display: 'flex', gap: '8px' }}>
-	              <Users size={11} className="text-neutral-400" />
-	              <span>成团席位：{group.currentMembers} / {group.maxMembers} 人 (最高上限)</span>
-	            </div>
-	            <div style={{ display: 'flex', gap: '8px' }}>
-	              <ShieldAlert size={11} className="text-neutral-400" />
-	              <span>地点规则：{group.locationVisibleRule === 'after_join' ? '审核通过后可见' : '开团前公开'}</span>
-	            </div>
-	          </div>
+          </div>
 	        </div>
 
         {group.description && (
@@ -170,53 +165,23 @@ export default function GroupDetailPage() {
         </div>
 
         {/* ============================================================== */}
-        {/* 集合地址板块 (根据是否入围展示公开/私密版) */}
+        {/* 集合地址板块 (已根据轻量化表单重构为行动引导语) */}
         <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '12px', border: '1px solid var(--m-border)', display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }}>
           <h3 style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)' }}>
-            集合地址指南：
+            集合计划商定：
             <ReqBadge id="GRP-DETAIL" style={{ position: 'relative', top: '-1px', marginLeft: '4px' }} />
           </h3>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ fontSize: '9px', color: 'var(--m-text-sub)' }}>
-              <span style={{ fontWeight: 700, color: 'var(--m-text-main)' }}>公开集合地点（摘要）：</span>
-              <p>{group.meetingAddress}</p>
+            <div style={{ fontSize: '9px', color: 'var(--m-text-sub)', lineHeight: '1.4' }}>
+              <span style={{ fontWeight: 700, color: 'var(--m-text-main)', display: 'block', marginBottom: '2px' }}>大致时间与地点提示：</span>
+              <p>
+                本拼团已绑定地标活动【{activity?.title || '同好活动'}】。为了给团主减负，**具体的见面集合时间、摊位地址、Coser特征或团主联系方式已全部挪至“拼团讨论群”内商议**。
+              </p>
+              <p style={{ marginTop: '4px', color: 'var(--m-primary)', fontWeight: 800 }}>
+                {group.status === 'cancelled' ? '⚠️ 开团已取消。' : '💡 申请通过成为正式成员并进入讨论群后，即可解锁全部沟通权限。'}
+              </p>
             </div>
-
-	            {(isMember || isCreator) && group.status !== 'cancelled' ? (
-              <div
-                style={{
-                  fontSize: '9px',
-                  backgroundColor: 'var(--m-primary-light)',
-                  border: '1px solid var(--m-primary)',
-                  padding: '8px',
-                  borderRadius: '10px',
-                  color: '#B56767',
-                  marginTop: '4px'
-                }}
-              >
-                <span style={{ fontWeight: 800, display: 'block', marginBottom: '2px' }}>私密精准路线指导（仅团员可见）：</span>
-                <p style={{ lineHeight: '1.4' }}>{group.meetingAddressDetail}</p>
-              </div>
-	            ) : (
-              <div
-                style={{
-                  fontSize: '8.5px',
-                  backgroundColor: 'rgba(122, 129, 138, 0.05)',
-                  border: '1px dashed var(--m-border)',
-                  padding: '8px',
-                  borderRadius: '10px',
-                  color: 'var(--m-text-sub)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  marginTop: '4px'
-                }}
-              >
-                <ShieldAlert size={12} className="text-neutral-400 flex-shrink-0" />
-	                <span>{group.status === 'cancelled' ? '开团已取消，私密集合地点已关闭。' : '精准集合摊位/主创联系电话等私密路线将在加群成功后解锁。'}</span>
-	              </div>
-	            )}
           </div>
         </div>
 
@@ -228,35 +193,46 @@ export default function GroupDetailPage() {
             <ReqBadge id="GRP-CHAT" style={{ position: 'relative', top: '-1px', marginLeft: '4px' }} />
           </h3>
           <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
-	            {group.members.map((m, idx) => (
-	              <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
-	                <img
-                  src={m.avatar}
-                  alt="avatar"
-                  style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', border: '0.5px solid var(--m-border)' }}
-                />
-                <span style={{ fontSize: '7.5px', color: 'var(--m-text-sub)', fontWeight: m.role === 'owner' ? 800 : 400 }}>
-                  {m.name.substring(0, 4)}
-                </span>
-	                {m.role === 'owner' && (
-                  <span style={{ fontSize: '6px', backgroundColor: 'var(--m-primary)', color: '#FFFFFF', padding: '0.5px 3px', borderRadius: '2px', transform: 'scale(0.9)' }}>
-                    团主
+            {group.members.map((m, idx) => {
+              const memberUserId = getUserIdByName(m.name);
+              return (
+                <div 
+                  key={idx} 
+                  onClick={() => {
+                    if (memberUserId) pushRoute('profile', { userId: memberUserId }, 'group_detail');
+                  }}
+                  className="interactive-scale"
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flexShrink: 0, cursor: memberUserId ? 'pointer' : 'default' }}
+                >
+                  <img
+                    src={m.avatar}
+                    alt="avatar"
+                    style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', border: '0.5px solid var(--m-border)' }}
+                  />
+                  <span style={{ fontSize: '7.5px', color: 'var(--m-text-sub)', fontWeight: m.role === 'owner' ? 800 : 400 }}>
+                    {m.name.substring(0, 4)}
                   </span>
-	                )}
-	                {isCreator && m.role !== 'owner' && group.status !== 'cancelled' && (
-	                  <button
-	                    onClick={() => {
-	                      if (confirm(`确定将 ${m.name} 移出开团吗？`)) {
-	                        removeGroupMember(group.id, m.name);
-	                      }
-	                    }}
-	                    style={{ border: 'none', backgroundColor: 'rgba(255,99,132,0.08)', color: '#FF6384', borderRadius: '9999px', padding: '1px 5px', fontSize: '6.5px', fontWeight: 800, cursor: 'pointer' }}
-	                  >
-	                    移出
-	                  </button>
-	                )}
-	              </div>
-	            ))}
+                  {m.role === 'owner' && (
+                    <span style={{ fontSize: '6px', backgroundColor: 'var(--m-primary)', color: '#FFFFFF', padding: '0.5px 3px', borderRadius: '2px', transform: 'scale(0.9)' }}>
+                      团主
+                    </span>
+                  )}
+                  {isCreator && m.role !== 'owner' && group.status !== 'cancelled' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm(`确定将 ${m.name} 移出开团吗？`)) {
+                          removeGroupMember(group.id, m.name);
+                        }
+                      }}
+                      style={{ border: 'none', backgroundColor: 'rgba(255,99,132,0.08)', color: '#FF6384', borderRadius: '9999px', padding: '1px 5px', fontSize: '6.5px', fontWeight: 800, cursor: 'pointer', marginTop: '2px' }}
+                    >
+                      移出
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 

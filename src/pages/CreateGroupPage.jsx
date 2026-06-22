@@ -2,16 +2,19 @@ import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { MapPin, DollarSign, Users, Send } from 'lucide-react';
 import { ReqBadge } from '../components/ReqAnnotation';
+import LoginGuard from '../components/LoginGuard';
 
 export default function CreateGroupPage() {
-  const { routeStack, activities, createGroup, popRoute, pushRoute } = useApp();
+  const { routeStack, activities, createGroup, popRoute, pushRoute, user } = useApp();
 
-  // 获取当前关联活动 ID
+  // 获取当前关联活动 ID (允许为空)
   const currentRoute = routeStack[routeStack.length - 1];
-  const activityId = currentRoute.params.activityId;
+  const initialActivityId = currentRoute.params?.activityId || null;
+  const [activeId, setActiveId] = useState(initialActivityId);
 
-  // 1. 查找关联活动
-  const activity = activities.find(a => a.id === activityId);
+  // 1. 查找关联活动与可选择活动列表
+  const activity = activities.find(a => a.id === activeId);
+  const selectableActivities = activities.filter(a => a.status === 'upcoming' || a.status === 'ongoing');
 
   // 表单状态
   const [title, setTitle] = useState('');
@@ -32,8 +35,8 @@ export default function CreateGroupPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!title.trim() || !meetingTime || !addressSummary.trim() || !addressDetail.trim() || !requirementSummary.trim()) {
-      alert('请将表单核心项目填写完整！');
+    if (!title.trim() || !totalLimit) {
+      alert('请填写拼团名称和团队人数上限！');
       return;
     }
 
@@ -42,24 +45,19 @@ export default function CreateGroupPage() {
       return;
     }
 
-    if (activity.status === 'ongoing' && !confirm('当前活动正在进行中，请确认集合时间仍然可执行。')) {
-      return;
-    }
-
-    // 创建开团
+    // 创建开团 (精简版，默认时空坐标由入群后沟通商定)
     const createdGroupId = createGroup(
-      activityId,
+      activeId,
       title,
-      price,
+      '0', // price -> 默认 0 对应 'AA制'
       totalLimit,
-      addressSummary,
-      addressDetail,
+      '群内沟通决定', // addressSummary -> 默认“群内沟通决定”
+      '加入群聊后由成员共同沟通商定具体集合细节。', // addressDetail -> 引导入群商定
       tag,
       {
-        meetingTime: new Date(meetingTime).toISOString(),
         description,
-        requirementSummary,
-        locationVisibleRule
+        requirementSummary: requirementSummary.trim() || undefined,
+        locationVisibleRule: 'after_join'
       }
     );
 
@@ -71,10 +69,77 @@ export default function CreateGroupPage() {
     }
   };
 
+  // 登录拦截：未登录不可发起拼团
+  if (!user) {
+    return (
+      <LoginGuard
+        icon={Users}
+        title="登录后发起拼团"
+        desc="登录环境账户后即可发起约人面基 / 拼单开团"
+        showBack
+      />
+    );
+  }
+
   if (!activity) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>
-        <h3>关联活动不存在</h3>
+      <div className="w-full h-full bg-[#F6F5F2] flex flex-col relative select-none">
+        {/* 顶部指示栏 */}
+        <div style={{ backgroundColor: '#FFFFFF', padding: '14px 16px', borderBottom: '1px solid var(--m-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <h2 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--m-primary)' }}>
+            第一步：请选择要发团的同好活动
+          </h2>
+          <button 
+            onClick={popRoute}
+            style={{ background: 'none', border: 'none', color: 'var(--m-text-sub)', fontSize: '10px', fontWeight: 700, cursor: 'pointer' }}
+          >
+            返回
+          </button>
+        </div>
+
+        {/* 活动列表 */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {selectableActivities.length > 0 ? (
+            selectableActivities.map(act => (
+              <div
+                key={act.id}
+                onClick={() => setActiveId(act.id)}
+                className="glass-panel interactive-scale"
+                style={{
+                  padding: '12px',
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: '16px',
+                  border: '1px solid var(--m-border)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  gap: '12px',
+                  alignItems: 'center'
+                }}
+              >
+                <img 
+                  src={act.cover} 
+                  alt="cover" 
+                  style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }}
+                />
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <span className={`badge ${act.status === 'ongoing' ? 'badge-sage' : 'badge-blue'}`} style={{ alignSelf: 'start', fontSize: '7px', transform: 'scale(0.9)', transformOrigin: 'left center', padding: '1px 4px' }}>
+                    {act.status === 'ongoing' ? '进行中' : '即将开始'}
+                  </span>
+                  <h4 style={{ fontSize: '10.5px', fontWeight: 800, color: 'var(--m-text-main)', margin: 0, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                    {act.title}
+                  </h4>
+                  <span style={{ fontSize: '7.5px', color: 'var(--m-text-sub)' }}>
+                    时间：{act.date.split(' 至 ')[0]} 起
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--m-text-sub)', fontSize: '10px' }}>
+              暂无可开团的活跃活动。
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -93,11 +158,30 @@ export default function CreateGroupPage() {
             style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
           />
           <div style={{ minWidth: 0, flex: 1 }}>
-            <span style={{ fontSize: '8px', fontWeight: 800, color: 'var(--m-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span>您正在为以下活动发起面基拼团：</span>
-              <ReqBadge id="GRP-CREATE" style={{ position: 'relative', top: '-1px' }} />
-            </span>
-            <h4 style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '8px', fontWeight: 800, color: 'var(--m-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span>您正在为以下活动发起面基拼团：</span>
+                <ReqBadge id="GRP-CREATE" style={{ position: 'relative', top: '-1px' }} />
+              </span>
+              {!initialActivityId && (
+                <button
+                  type="button"
+                  onClick={() => setActiveId(null)}
+                  style={{
+                    border: 'none',
+                    background: 'none',
+                    color: 'var(--m-text-muted)',
+                    fontSize: '8px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  更换活动
+                </button>
+              )}
+            </div>
+            <h4 style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', marginTop: '2px' }}>
               {activity.title}
             </h4>
           </div>
@@ -155,66 +239,18 @@ export default function CreateGroupPage() {
             </div>
           </div>
 
-          {/* 费用与人数限额 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                <DollarSign size={11} className="text-neutral-400" />
-                人均开销 (元)
-              </label>
-              <input 
-                type="number" 
-                min="0"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
-                style={{
-                  width: '100%',
-                  height: '32px',
-                  backgroundColor: '#F8F9FA',
-                  border: '1px solid var(--m-border)',
-                  borderRadius: '8px',
-                  padding: '0 10px',
-                  fontSize: '9.5px',
-                  color: 'var(--m-text-main)',
-                  outline: 'none'
-                }}
-              />
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-text-main)', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                <Users size={11} className="text-neutral-400" />
-                团队人数上限 (人)
-              </label>
-              <input 
-                type="number" 
-                min="2"
-                max="50"
-                value={totalLimit}
-                onChange={(e) => setTotalLimit(e.target.value)}
-                required
-                style={{
-                  width: '100%',
-                  height: '32px',
-                  backgroundColor: '#F8F9FA',
-                  border: '1px solid var(--m-border)',
-                  borderRadius: '8px',
-                  padding: '0 10px',
-                  fontSize: '9.5px',
-                  color: 'var(--m-text-main)',
-                  outline: 'none'
-                }}
-              />
-            </div>
-          </div>
-
+          {/* 团队人数上限 (预招募人数) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)' }}>3. 集合时间 (必填)</label>
-            <input
-              type="datetime-local"
-              value={meetingTime}
-              onChange={(e) => setMeetingTime(e.target.value)}
+            <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)', display: 'flex', alignItems: 'center', gap: '2px' }}>
+              <Users size={12} className="text-neutral-400" />
+              <span>3. 团队人数上限 (必填，最高40人)</span>
+            </label>
+            <input 
+              type="number" 
+              min="2"
+              max="40"
+              value={totalLimit}
+              onChange={(e) => setTotalLimit(e.target.value)}
               required
               style={{
                 width: '100%',
@@ -230,14 +266,14 @@ export default function CreateGroupPage() {
             />
           </div>
 
+          {/* 加入要求 (选填) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)' }}>4. 加入要求 (必填)</label>
+            <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)' }}>4. 加入要求 (选填)</label>
             <textarea
               rows="3"
-              placeholder="例如：主吃排少/原神，需遵守现场秩序，不接受黄牛转票。"
+              placeholder="（非必填）输入对同伴的要求，例如：主吃排少/原神，不接受黄牛转票。"
               value={requirementSummary}
               onChange={(e) => setRequirementSummary(e.target.value)}
-              required
               style={{
                 width: '100%',
                 backgroundColor: '#F8F9FA',
@@ -252,11 +288,12 @@ export default function CreateGroupPage() {
             />
           </div>
 
+          {/* 详细说明 (选填) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)' }}>5. 详细说明</label>
+            <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)' }}>5. 详细说明 (选填)</label>
             <textarea
               rows="3"
-              placeholder="补充行程安排、集合后行动路线、预算规则或注意事项。"
+              placeholder="（非必填）补充面基说明或注意事项。"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               style={{
@@ -271,91 +308,6 @@ export default function CreateGroupPage() {
                 resize: 'none'
               }}
             />
-          </div>
-
-        </div>
-
-        {/* 集合地址 */}
-        <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '14px', border: '1px solid var(--m-border)', display: 'flex', flexDirection: 'column', gap: '10px', position: 'relative' }}>
-          <ReqBadge id="GRP-CREATE" style={{ top: '-6px', right: '-6px' }} />
-          
-          {/* 大致区域 */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)', display: 'flex', alignItems: 'center', gap: '2px' }}>
-              <MapPin size={11} className="text-neutral-400" />
-              公开集合地点摘要 (所有人可见)
-            </label>
-            <input 
-              type="text" 
-              placeholder="例如：静安大悦城北座9楼中庭人形立牌下"
-              value={addressSummary}
-              onChange={(e) => setAddressSummary(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                height: '32px',
-                backgroundColor: '#F8F9FA',
-                border: '1px solid var(--m-border)',
-                borderRadius: '8px',
-                padding: '0 10px',
-                fontSize: '9.5px',
-                color: 'var(--m-text-main)',
-                outline: 'none'
-              }}
-            />
-          </div>
-
-          {/* 精准门牌 */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-primary)' }}>
-              私密精准集合地点指南 (仅入群成员可见)
-            </label>
-            <textarea 
-              rows="3"
-              placeholder="描述您的当天衣着特征、精准展位号或主创手机号码，这些重要隐私会在成员加入并通过审核后展示。"
-              value={addressDetail}
-              onChange={(e) => setAddressDetail(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                backgroundColor: '#F8F9FA',
-                border: '1px solid var(--m-border)',
-                borderRadius: '8px',
-                padding: '8px 10px',
-                fontSize: '9.5px',
-                color: 'var(--m-text-main)',
-                outline: 'none',
-                resize: 'none'
-              }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <label style={{ fontSize: '10px', fontWeight: 800, color: 'var(--m-text-main)' }}>
-              精准地点可见规则
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
-              {[
-                { key: 'after_join', label: '审核通过后可见' },
-                { key: 'after_start', label: '开团前公开' }
-              ].map(rule => (
-                <button
-                  key={rule.key}
-                  type="button"
-                  onClick={() => setLocationVisibleRule(rule.key)}
-                  className={`filter-item ${locationVisibleRule === rule.key ? 'active' : ''}`}
-                  style={{
-                    padding: '6px 0',
-                    fontSize: '8.5px',
-                    textAlign: 'center',
-                    justifyContent: 'center',
-                    display: 'flex'
-                  }}
-                >
-                  {rule.label}
-                </button>
-              ))}
-            </div>
           </div>
 
         </div>

@@ -4,8 +4,14 @@ import { Heart, MessageSquare, Send, ChevronLeft, ChevronRight, Share2, Star, Me
 import { ReqBadge } from '../components/ReqAnnotation';
 
 export default function PostDetailPage() {
-  const { routeStack, popRoute, posts, toggleLikePost, addCommentToPost, circles } = useApp();
+  const { routeStack, popRoute, posts, toggleLikePost, addCommentToPost, circles, socialProfiles, user, pushRoute } = useApp();
   const [commentText, setCommentText] = useState('');
+
+  const getUserIdByName = (name) => {
+    if (user && name === user.name) return user.id;
+    const profile = socialProfiles.find(p => p.name === name);
+    return profile ? profile.id : null;
+  };
 
   // 1. 获取当前动态
   const currentRoute = routeStack[routeStack.length - 1];
@@ -66,7 +72,14 @@ export default function PostDetailPage() {
           </button>
           
           {/* 作者名片 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+          <div 
+            onClick={() => {
+              const aid = getUserIdByName(post.author.name);
+              if (aid) pushRoute('profile', { userId: aid }, 'post_detail');
+            }}
+            className="interactive-scale"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, cursor: 'pointer' }}
+          >
             <img 
               src={post.author.avatar} 
               alt="avatar" 
@@ -296,6 +309,11 @@ export default function PostDetailPage() {
                     {/* 评论主楼层 */}
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'start' }}>
                       <div 
+                        onClick={() => {
+                          const cid = getUserIdByName(comm.author);
+                          if (cid) pushRoute('profile', { userId: cid }, 'post_detail');
+                        }}
+                        className="interactive-scale"
                         style={{
                           width: '22px',
                           height: '22px',
@@ -307,7 +325,8 @@ export default function PostDetailPage() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          flexShrink: 0
+                          flexShrink: 0,
+                          cursor: 'pointer'
                         }}
                       >
                         {comm.author.substring(0, 1)}
@@ -315,7 +334,16 @@ export default function PostDetailPage() {
                       
                       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: '8.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>{comm.author}</span>
+                          <span 
+                            onClick={() => {
+                              const cid = getUserIdByName(comm.author);
+                              if (cid) pushRoute('profile', { userId: cid }, 'post_detail');
+                            }}
+                            className="interactive-scale"
+                            style={{ fontSize: '8.5px', fontWeight: 800, color: 'var(--m-text-main)', cursor: 'pointer' }}
+                          >
+                            {comm.author}
+                          </span>
                           <span style={{ fontSize: '7px', color: 'var(--m-text-muted)' }}>{comm.time}</span>
                         </div>
                         <p style={{ fontSize: '8.5px', color: 'var(--m-text-sub)', lineHeight: '1.4', marginTop: '1px' }}>

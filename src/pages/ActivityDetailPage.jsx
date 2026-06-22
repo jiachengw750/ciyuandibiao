@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { MapPin, Calendar, Heart, Star, Plus, ShieldCheck } from 'lucide-react';
+import { MapPin, Calendar, Heart, Star, Plus, ShieldCheck, Ticket } from 'lucide-react';
 import { ReqBadge } from '../components/ReqAnnotation';
+import ErrorState from '../components/ErrorState';
+import { CalendarX } from 'lucide-react';
 
 export default function ActivityDetailPage() {
   const {
@@ -24,6 +26,18 @@ export default function ActivityDetailPage() {
 
   // 查出活动与该活动下的拼团
   const activity = activities.find(a => a.id === activityId);
+
+  // 错误兜底：活动不存在时直接渲染缺省页，避免后续访问 activity.title 报错
+  if (!activity) {
+    return (
+      <ErrorState
+        icon={CalendarX}
+        title="活动不存在"
+        desc="该活动可能已下架、已结束或链接已失效"
+      />
+    );
+  }
+
   const associatedGroups = groups.filter(g => g.relatedActivityId === activityId && g.status !== 'cancelled');
   const associatedCircles = circles.filter(circle => {
     const haystack = `${circle.name} ${circle.intro} ${circle.tags.join(' ')} ${activity.title} ${activity.tags.join(' ')}`;
@@ -35,49 +49,31 @@ export default function ActivityDetailPage() {
   }).slice(0, 3);
   const relation = activityRelations[activityId] || { wanted: false, favorited: false };
 
-  // 决策卡片收折状态
-  const [showHelper, setShowHelper] = useState(true);
-
-  if (!activity) {
-    return (
-      <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>
-        <h3>活动数据不存在</h3>
-      </div>
-    );
-  }
-
-  // 计算决策建议 (去 Emoji，专业二次元面基模型)
-  const getDecisionAdvice = () => {
-    const isOngoing = activity.status === 'ongoing';
-    const groupCount = associatedGroups.length;
-
-    if (isOngoing) {
-      if (groupCount > 0) {
-        return {
-          verdict: '极力推荐前往面基',
-          detail: `当前活动正在进行中，且已有 ${groupCount} 个活跃拼团招募中。建议直接挑选心仪的拼团加入，是扩列和吃谷的绝佳时机。`
-        };
-      } else {
-        return {
-          verdict: '建议自建新团',
-          detail: '活动正在进行中，但目前该地标暂无活跃面基团。建议您作为团主发起第一个拼团，吸引徐汇区附近的同好聚集。'
-        };
-      }
-    } else {
-      // 未开始
-      return {
-        verdict: '提前入群预约',
-        detail: `活动尚处于招募预热阶段。当前有 ${activity.wantedCount} 位同好表示想去。建议提前加入对应圈子并预约首发拼团，抢占席位。`
-      };
-    }
+  const getPurposeTag = (type) => {
+    const map = {
+      exchange: { label: '拼单交换', class: 'badge-peach' },
+      photo: { label: '互相拍照', class: 'badge-blue' },
+      dinner: { label: '约饭聚餐', class: 'badge-sage' },
+      visit: { label: '结伴逛展', class: 'badge-slate' }
+    };
+    return map[type] || { label: '面基搭子', class: 'badge-slate' };
   };
 
-  const advice = getDecisionAdvice();
+
+
+
 
   // 点击开团
   const handleCreateGroupClick = () => {
     checkLogin(() => {
       pushRoute('create-group', { activityId });
+    });
+  };
+
+  // 点击购票
+  const handleBuyTicket = () => {
+    checkLogin(() => {
+      pushRoute('ticket-select', { activityId });
     });
   };
 
@@ -119,7 +115,7 @@ export default function ActivityDetailPage() {
             </div>
             <div style={{ display: 'flex', gap: '6px' }}>
               <MapPin size={11} className="text-neutral-400 flex-shrink-0" />
-              <span>地址：{activity.location}</span>
+              <span>地址：{activity.city} · {activity.address} ({activity.location})</span>
             </div>
           </div>
 
@@ -129,45 +125,7 @@ export default function ActivityDetailPage() {
           </p>
         </div>
 
-        {/* ============================================================== */}
-        {/* P0 独创：面基决策助手卡片 (莫兰迪风格，不带任何 Emoji) */}
-        {showHelper && (
-          <div
-            className="glass-panel"
-            style={{
-              margin: '12px 12px 0 12px',
-              padding: '12px',
-              borderRadius: '12px',
-              backgroundColor: 'var(--m-bg-card)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '6px',
-              position: 'relative'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--m-border)', paddingBottom: '6px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 800, color: 'var(--m-primary)' }}>
-                <ShieldCheck size={13} />
-                <span>次元地标决策助手</span>
-                <ReqBadge id="ACT-DETAIL" style={{ position: 'relative', top: '-1px' }} />
-              </div>
-              <button
-                onClick={() => setShowHelper(false)}
-                style={{ background: 'none', border: 'none', fontSize: '8px', color: 'var(--m-text-muted)', cursor: 'pointer' }}
-              >
-                收起
-              </button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>
-                决策评级：{advice.verdict}
-              </span>
-              <p style={{ fontSize: '8.5px', color: 'var(--m-text-sub)', lineHeight: '1.4' }}>
-                {advice.detail}
-              </p>
-            </div>
-          </div>
-        )}
+
 
         {/* ============================================================== */}
         {/* 关联同好营板块 */}
@@ -237,28 +195,30 @@ export default function ActivityDetailPage() {
               拼团面基搭子 ({associatedGroups.length})
               <ReqBadge id="ACT-GROUPS" style={{ position: 'relative', top: '-1px', marginLeft: '4px' }} />
             </h3>
-            <button
-              onClick={handleCreateGroupClick}
-              className="interactive-scale"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px',
-                fontSize: '8px',
-                fontWeight: 800,
-                color: 'var(--m-primary)',
-                backgroundColor: 'var(--m-primary-light)',
-                border: '1.5px solid var(--m-primary)',
-                padding: '2px 8px',
-                borderRadius: '9999px',
-                cursor: 'pointer',
-                position: 'relative'
-              }}
-            >
-              <Plus size={10} strokeWidth={2.5} />
-              <span>发起拼团</span>
-              <ReqBadge id="ACT-GROUPS" style={{ top: '-10px', right: '-10px' }} />
-            </button>
+            {(activity.status !== 'ended' && activity.status !== 'cancelled') && (
+              <button
+                onClick={handleCreateGroupClick}
+                className="interactive-scale"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '2px',
+                  fontSize: '8px',
+                  fontWeight: 800,
+                  color: 'var(--m-primary)',
+                  backgroundColor: 'var(--m-primary-light)',
+                  border: '1.5px solid var(--m-primary)',
+                  padding: '2px 8px',
+                  borderRadius: '9999px',
+                  cursor: 'pointer',
+                  position: 'relative'
+                }}
+              >
+                <Plus size={10} strokeWidth={2.5} />
+                <span>发起拼团</span>
+                <ReqBadge id="ACT-GROUPS" style={{ top: '-10px', right: '-10px' }} />
+              </button>
+            )}
           </div>
 
           {associatedGroups.length > 0 ? (
@@ -281,12 +241,14 @@ export default function ActivityDetailPage() {
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    <h4 style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                      {grp.title}
-                    </h4>
-                    <span style={{ fontSize: '7.5px', color: 'var(--m-text-sub)' }}>
-                      集合时间：{new Date(grp.startTime).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })} 14:00
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                      <span className={`badge ${getPurposeTag(grp.type).class}`} style={{ transform: 'scale(0.85)', transformOrigin: 'left center', padding: '1px 5px', fontSize: '7px', flexShrink: 0 }}>
+                        {getPurposeTag(grp.type).label}
+                      </span>
+                      <h4 style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', margin: 0, flex: 1 }}>
+                        {grp.title}
+                      </h4>
+                    </div>
                     <span style={{ fontSize: '7.5px', color: 'var(--m-text-muted)' }}>
                       要求：{grp.requirementSummary}
                     </span>
@@ -380,18 +342,56 @@ export default function ActivityDetailPage() {
         </div>
 
         {/* 约个同伴开团 CTA */}
-        <button
-          onClick={handleCreateGroupClick}
-          className="btn-round btn-primary interactive-scale"
-          style={{
-            padding: '8px 20px',
-            fontSize: '10px',
-            position: 'relative'
-          }}
-        >
-          约个同伴 (发起开团)
-          <ReqBadge id="ACT-DETAIL" style={{ top: '-10px', right: '-10px' }} />
-        </button>
+        {activity.status === 'ended' || activity.status === 'cancelled' ? (
+          <button
+            disabled
+            className="btn-round btn-secondary"
+            style={{
+              padding: '8px 20px',
+              fontSize: '10px',
+              cursor: 'not-allowed',
+              opacity: 0.6,
+              boxShadow: 'none'
+            }}
+          >
+            {activity.status === 'ended' ? '活动已结束，无法发起新拼团' : '活动已取消'}
+          </button>
+        ) : (
+          <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+            <button
+              onClick={handleBuyTicket}
+              className="btn-round interactive-scale"
+              style={{
+                flex: 1,
+                padding: '8px 16px',
+                fontSize: '10px',
+                backgroundColor: '#FFFFFF',
+                color: 'var(--m-primary)',
+                border: '2px solid var(--m-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+            >
+              <Ticket size={14} />
+              <span>立即购票</span>
+            </button>
+            <button
+              onClick={handleCreateGroupClick}
+              className="btn-round btn-primary interactive-scale"
+              style={{
+                flex: 1,
+                padding: '8px 16px',
+                fontSize: '10px',
+                position: 'relative'
+              }}
+            >
+              约个同伴
+              <ReqBadge id="ACT-DETAIL" style={{ top: '-10px', right: '-10px' }} />
+            </button>
+          </div>
+        )}
       </div>
 
     </div>

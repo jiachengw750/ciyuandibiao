@@ -1,13 +1,16 @@
 import { useApp } from '../context/AppContext';
 import { Check, X, Users, MessageSquare } from 'lucide-react';
 import { ReqBadge } from '../components/ReqAnnotation';
+import LoginGuard from '../components/LoginGuard';
+import ErrorState from '../components/ErrorState';
 
 export default function GroupApprovePage() {
   const {
     routeStack,
     groups,
     approveRequest,
-    popRoute
+    popRoute,
+    user
   } = useApp();
 
   // 获取路由参数中的 groupId
@@ -17,11 +20,25 @@ export default function GroupApprovePage() {
   // 查询拼团数据
   const group = groups.find(g => g.id === groupId);
 
+  // 登录拦截：未登录不可进入审核管理
+  if (!user) {
+    return (
+      <LoginGuard
+        icon={Users}
+        title="登录后管理拼团申请"
+        desc="登录环境账户后即可审核入团申请"
+        showBack
+      />
+    );
+  }
+
   if (!group) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>
-        <h3>拼团项目不存在</h3>
-      </div>
+      <ErrorState
+        icon={Users}
+        title="拼团不存在"
+        desc="该拼团可能已被取消、已成团或链接已失效"
+      />
     );
   }
 

@@ -33,7 +33,7 @@ export default function PhoneShell({ children }) {
     if (!isSubPage) return null;
     
     // 这些页面有自己的内置导航栏，PhoneShell不再重复渲染
-    const pagesWithOwnNavbar = ['post-detail', 'create-post', 'circle-detail'];
+    const pagesWithOwnNavbar = ['post-detail', 'create-post', 'circle-detail', 'pitch'];
     if (pagesWithOwnNavbar.includes(currentRoute.page)) return null;
     
     let title = '详情';
@@ -296,7 +296,7 @@ export default function PhoneShell({ children }) {
               </button>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
               {/* 发图文 */}
               <div 
                 onClick={() => {
@@ -306,10 +306,10 @@ export default function PhoneShell({ children }) {
                 className="interactive-scale"
                 style={{
                   flex: 1,
-                  padding: '16px',
+                  padding: '12px 6px',
                   borderRadius: '16px',
-                  backgroundColor: 'var(--m-primary-light)',
-                  border: '1px solid var(--m-primary)',
+                  backgroundColor: 'var(--m-secondary-light)',
+                  border: '1px solid var(--m-secondary)',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -317,8 +317,8 @@ export default function PhoneShell({ children }) {
                   cursor: 'pointer'
                 }}
               >
-                <ImageIcon size={18} className="text-[#E5A9A9]" />
-                <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-primary)' }}>发图文</span>
+                <ImageIcon size={16} className="text-[#c94b7c]" />
+                <span style={{ fontSize: '8.5px', fontWeight: 800, color: '#c94b7c' }}>发图文</span>
               </div>
 
               {/* 发视频 */}
@@ -330,10 +330,10 @@ export default function PhoneShell({ children }) {
                 className="interactive-scale"
                 style={{
                   flex: 1,
-                  padding: '16px',
+                  padding: '12px 6px',
                   borderRadius: '16px',
-                  backgroundColor: 'var(--m-secondary-light)',
-                  border: '1px solid var(--m-secondary)',
+                  backgroundColor: 'var(--m-slate-light)',
+                  border: '1px solid var(--m-slate)',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -341,8 +341,32 @@ export default function PhoneShell({ children }) {
                   cursor: 'pointer'
                 }}
               >
-                <Film size={18} className="text-[#A8BDD1]" />
-                <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--m-secondary)' }}>发视频</span>
+                <Film size={16} className="text-[#3b7bb5]" />
+                <span style={{ fontSize: '8.5px', fontWeight: 800, color: '#3b7bb5' }}>发视频</span>
+              </div>
+
+              {/* 发起开团 */}
+              <div 
+                onClick={() => {
+                  closePublishFlow();
+                  pushRoute('create-group');
+                }}
+                className="interactive-scale"
+                style={{
+                  flex: 1,
+                  padding: '12px 6px',
+                  borderRadius: '16px',
+                  backgroundColor: 'var(--m-primary-light)',
+                  border: '1px solid var(--m-primary)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                <Users size={16} className="text-[#9c7fbd]" />
+                <span style={{ fontSize: '8.5px', fontWeight: 800, color: '#9c7fbd' }}>发起开团</span>
               </div>
             </div>
           </div>

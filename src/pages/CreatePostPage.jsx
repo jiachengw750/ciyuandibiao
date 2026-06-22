@@ -6,9 +6,10 @@ import {
   Film, ArrowLeft, Play, AlertCircle, Trash2, Sparkles
 } from 'lucide-react';
 import { ReqBadge } from '../components/ReqAnnotation';
+import LoginGuard from '../components/LoginGuard';
 
 export default function CreatePostPage() {
-  const { routeStack, circles, circleMemberships, activities, createPost, popRoute, saveDraft, deleteDraft } = useApp();
+  const { routeStack, circles, circleMemberships, activities, createPost, popRoute, saveDraft, deleteDraft, user } = useApp();
   const fileInputRef = useRef(null);
   
   // 获取当前路由参数，检查是否有外部传入的类别或圈子
@@ -23,8 +24,27 @@ export default function CreatePostPage() {
   const [title, setTitle] = useState(initialDraft?.title || '');
   const [content, setContent] = useState(initialDraft?.content || '');
   const [selectedActivityId, setSelectedActivityId] = useState('none');
-  const [selectedTags, setSelectedTags] = useState(initialDraft?.tags || []);
-  const [showTagsDrawer, setShowTagsDrawer] = useState(false);
+
+  // AC-013A: 从圈子进入时自动预填匹配的话题标签
+  const getAutoFilledTags = () => {
+    if (initialDraft?.tags) return initialDraft.tags;
+    if (routeCircleId && routeCircleId !== 'none') {
+      const sourceCircle = circles.find(c => c.id === routeCircleId);
+      if (sourceCircle?.tags && sourceCircle.tags.length > 0) {
+        // 自动预填第一个圈子标签（去掉"同好"、"相关"等后缀）
+        const firstTag = sourceCircle.tags[0].replace(/同好|相关|圈子/g, '');
+        // 如果热门话题中有匹配的，优先使用
+        const trendingTags = ['吃谷打卡', 'Coser返图', '神仙太太', '求面基扩列', '战利品展示', '吐槽树洞'];
+        const matchedTrending = trendingTags.find(t => firstTag.includes(t.slice(0, 2)) || t.includes(firstTag.slice(0, 2)));
+        return matchedTrending ? [matchedTrending] : [firstTag];
+      }
+    }
+    return [];
+  };
+
+  const [selectedTags, setSelectedTags] = useState(getAutoFilledTags());
+  // 支持测试面板一键直达：params.openDrawer = 'tags' 时进入即展开话题标签抽屉
+  const [showTagsDrawer, setShowTagsDrawer] = useState(currentRoute.params?.openDrawer === 'tags');
 
   // 图文流：已选图片列表
   const [selectedImages, setSelectedImages] = useState(initialDraft?.images || []);
@@ -161,6 +181,18 @@ export default function CreatePostPage() {
     (selectedType === 'video' && !selectedVideoUrl);
 
   const isDraftDisabled = !title.trim() && !content.trim();
+
+  // 登录拦截：未登录不可发布动态
+  if (!user) {
+    return (
+      <LoginGuard
+        icon={ImageIcon}
+        title="登录后发布动态"
+        desc="登录环境账户后即可发布图文 / 视频动态"
+        showBack
+      />
+    );
+  }
 
 
   // ==================== 视图 1：选择发布类型 (发图文 / 发视频) ====================

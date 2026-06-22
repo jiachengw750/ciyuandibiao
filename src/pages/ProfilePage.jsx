@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import {
   LogOut, Heart, Calendar, MapPin,
   Settings, X, ChevronRight, Camera, Copy,
-  RefreshCw, Plus, Smile, ArrowLeft, Edit3, Trash2, Play
+  RefreshCw, Plus, Smile, ArrowLeft, Edit3, Trash2, Play, Ticket
 } from 'lucide-react';
 import { ReqBadge } from '../components/ReqAnnotation';
 
@@ -19,36 +19,45 @@ export default function ProfilePage() {
     activityRelations,
     circles,
     pushRoute,
+    popRoute,
+    routeStack,
     resetToTab,
-	    openPublishFlow,
-	    drafts,
-	    deleteDraft,
-	    socialProfiles,
-	    accountBindings,
-	    privacySettings,
-	    notificationSettings,
-	    accountCancellation,
-	    updatePrivacySetting,
-	    updateNotificationSetting,
-	    rebindPhone,
-	    toggleThirdPartyBinding,
-	    requestAccountCancellation
-	  } = useApp();
+    openPublishFlow,
+    drafts,
+    deleteDraft,
+    socialProfiles,
+    accountBindings,
+    privacySettings,
+    notificationSettings,
+    accountCancellation,
+    updatePrivacySetting,
+    updateNotificationSetting,
+    rebindPhone,
+    toggleThirdPartyBinding,
+    requestAccountCancellation,
+    toggleFollowUser,
+    startPrivateChat
+  } = useApp();
 
 
 
+
+  const currentRoute = routeStack[routeStack.length - 1];
+  const targetUserId = currentRoute?.params?.userId;
+  const isOthers = targetUserId && targetUserId !== user?.id;
+  const targetProfile = isOthers ? socialProfiles.find(p => p.id === targetUserId) : null;
 
   // 默认个人资料信息
-  const userGender = user?.gender || '保密';
-  const userBirthday = user?.birthday || '2004-10-12';
-  const userMbti = user?.mbti || 'INFP';
-  const userId = user?.id || '1057860';
-  const userCover = user?.cover || '/cover_muzi.png';
+  const userGender = isOthers ? '保密' : (user?.gender || '保密');
+  const userBirthday = isOthers ? '1999-01-01' : (user?.birthday || '2004-10-12');
+  const userMbti = isOthers ? (targetProfile?.tags?.includes('ENTP') ? 'ENTP' : (targetProfile?.tags?.includes('INFP') ? 'INFP' : 'ISFP')) : (user?.mbti || 'INFP');
+  const userId = isOthers ? (targetProfile?.id || '') : (user?.id || '1057860');
+  const userCover = isOthers ? '/cover_sakura.png' : (user?.cover || '/cover_muzi.png');
   const userIp = '上海市';
 
-  // 状态弹窗控制
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  // 状态弹窗控制（支持测试面板一键直达：params.openModal = 'edit' | 'settings'）
+  const [showEditModal, setShowEditModal] = useState(currentRoute?.params?.openModal === 'edit');
+  const [showSettingsModal, setShowSettingsModal] = useState(currentRoute?.params?.openModal === 'settings');
 
 
 
@@ -57,11 +66,9 @@ export default function ProfilePage() {
   const [showGenderPicker, setShowGenderPicker] = useState(false);
   const [showMbtiPicker, setShowMbtiPicker] = useState(false);
 
-  // 一级主 Tab: 'publish' (发布) | 'drafts' (草稿箱) | 'activities' (活动)
-  const [activeMainTab, setActiveMainTab] = useState('publish');
-
-  // 二级子 Tab (仅在 'publish' 时显示): 'works' (作品) | 'liked' (喜欢) | 'collected' (收藏)
-  const [activeSubTab, setActiveSubTab] = useState('works');
+  // 一级 Tab (5个平级): 'publish' (发布) | 'liked' (喜欢) | 'collected' (收藏) | 'drafts' (草稿箱) | 'activities' (活动)
+  // 支持测试面板一键直达：params.initialTab 指定进入后默认展示的 Tab
+  const [activeTab, setActiveTab] = useState(currentRoute?.params?.initialTab || 'publish');
 
   // 编辑字段临时状态
   const [editName, setEditName] = useState('');
@@ -104,8 +111,10 @@ export default function ProfilePage() {
   };
 
   // 过滤数据逻辑
-  // 1. 作品 (我正式发布的动态)
-  const myPosts = posts.filter(p => user && p.author.name === user.name && p.status === 'normal');
+  // 1. 作品 (我/Ta正式发布的动态)
+  const myPosts = isOthers 
+    ? posts.filter(p => targetProfile && p.author.name === targetProfile.name && p.status === 'normal')
+    : posts.filter(p => user && p.author.name === user.name && p.status === 'normal');
 
   // 2. 喜欢 (我点过赞的动态)
   const likedPosts = posts.filter(p => p.liked);
@@ -113,19 +122,21 @@ export default function ProfilePage() {
   // 3. 收藏 (我收藏的动态)
   const collectedPosts = posts.filter(p => p.collected);
 
-  // 4. 草稿箱数据
-  const mockDrafts = drafts;
+  // 4. 草稿箱数据（测试面板可通过 params.forceEmpty 强制演示空状态）
+  const mockDrafts = currentRoute?.params?.forceEmpty === 'drafts' ? [] : drafts;
 
   // 5. 想去的活动
-  const wantedActivities = activities.filter(a => activityRelations[a.id]?.wanted);
-  const favoritedActivities = activities.filter(a => activityRelations[a.id]?.favorited);
+  const wantedActivities = isOthers ? [] : activities.filter(a => activityRelations[a.id]?.wanted);
+  const favoritedActivities = isOthers ? [] : activities.filter(a => activityRelations[a.id]?.favorited);
 
-  // 6. 我参加的拼团
-  const joinedGroups = groups.filter(g => user && g.members && g.members.some(m => m.name === user.name));
+  // 6. 我/Ta参加的拼团
+  const joinedGroups = isOthers
+    ? groups.filter(g => targetProfile && g.members && g.members.some(m => m.name === targetProfile.name))
+    : groups.filter(g => user && g.members && g.members.some(m => m.name === user.name));
 
-  // 7. 我加入的同好营 (我的圈子)
+  // 7. 我/Ta加入的同好营 (我的圈子)
   // 模拟一些用户加入的同好营
-  const myCircles = circles.slice(0, 2);
+  const myCircles = isOthers ? circles.slice(2, 4) : circles.slice(0, 2);
 
   const openEditModal = () => {
     if (!user) return;
@@ -205,8 +216,12 @@ export default function ProfilePage() {
 
   const [cacheSize, setCacheSize] = useState('32.4 MB');
   const [newPhone, setNewPhone] = useState('');
-  const followerCount = socialProfiles.filter(profile => profile.isFollower).length;
-  const followingCount = socialProfiles.filter(profile => profile.isFollowing).length;
+  const followerCount = isOthers
+    ? (targetProfile?.isFollower ? 1 : 0) + 142
+    : socialProfiles.filter(profile => profile.isFollower).length;
+  const followingCount = isOthers
+    ? (targetProfile?.isFollowing ? 1 : 0) + 57
+    : socialProfiles.filter(profile => profile.isFollowing).length;
 
   return (
     <div className="w-full h-full flex flex-col select-none relative overflow-hidden" style={{ backgroundColor: 'var(--m-bg-canvas)' }}>
@@ -217,7 +232,7 @@ export default function ProfilePage() {
           height: '110px',
           width: '100%',
           position: 'relative',
-          backgroundImage: `url(${user ? userCover : '/cover_muzi.png'})`,
+          backgroundImage: `url(${userCover})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           flexShrink: 0
@@ -225,9 +240,51 @@ export default function ProfilePage() {
       >
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 100%)' }} />
 
-        {/* 顶部操作：设置 + 退出 */}
-        {user && (
+        {/* 返回按钮（当在他人主页时显示） */}
+        {isOthers && (
+          <div style={{ position: 'absolute', top: '12px', left: '12px', zIndex: 15 }}>
+            <button
+              onClick={() => popRoute()}
+              className="interactive-scale"
+              style={{
+                width: '26px',
+                height: '26px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                border: 'none',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              <ArrowLeft size={13} />
+            </button>
+          </div>
+        )}
+
+        {/* 顶部操作：我的票夹 + 设置 + 退出 */}
+        {user && !isOthers && (
           <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '8px', zIndex: 15 }}>
+            <button
+              onClick={() => pushRoute('my-tickets', {}, 'profile')}
+              className="interactive-scale"
+              style={{
+                width: '26px',
+                height: '26px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                border: 'none',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              <Ticket size={13} />
+            </button>
             <button
               onClick={() => setShowSettingsModal(true)}
               className="interactive-scale"
@@ -287,12 +344,12 @@ export default function ProfilePage() {
           flexShrink: 0
         }}
       >
-        {user ? (
+        {(user || isOthers) ? (
           <>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
               {/* 大头像 */}
               <img
-                src={user.avatar}
+                src={isOthers ? targetProfile?.avatar : user?.avatar}
                 alt="avatar"
                 style={{
                   width: '58px',
@@ -307,7 +364,7 @@ export default function ProfilePage() {
                   zIndex: 12
                 }}
               />
-              <ReqBadge id="MINE-HOME" style={{ top: '-8px', left: '50px' }} />
+              {!isOthers && <ReqBadge id="MINE-HOME" style={{ top: '-8px', left: '50px' }} />}
 
               {/* 头像右侧社交统计 (与大厂截图一致：粉丝、关注、获赞) */}
               <div
@@ -319,49 +376,86 @@ export default function ProfilePage() {
                   lineHeight: '1.2'
                 }}
               >
-                <div onClick={() => pushRoute('social-list', { type: 'followers' }, 'profile')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                <div onClick={() => !isOthers && pushRoute('social-list', { type: 'followers' }, 'profile')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: isOthers ? 'default' : 'pointer' }}>
                   <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--m-text-main)' }}>{followerCount}</span>
                   <span style={{ fontSize: '7.5px', color: 'var(--m-text-muted)', fontWeight: 700 }}>粉丝</span>
                 </div>
-                <div onClick={() => pushRoute('social-list', { type: 'following' }, 'profile')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                <div onClick={() => !isOthers && pushRoute('social-list', { type: 'following' }, 'profile')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: isOthers ? 'default' : 'pointer' }}>
                   <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--m-text-main)' }}>{followingCount}</span>
                   <span style={{ fontSize: '7.5px', color: 'var(--m-text-muted)', fontWeight: 700 }}>关注</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--m-text-main)' }}>1.2k</span>
+                  <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--m-text-main)' }}>{isOthers ? '520' : '1.2k'}</span>
                   <span style={{ fontSize: '7.5px', color: 'var(--m-text-muted)', fontWeight: 700 }}>获赞</span>
                 </div>
               </div>
 
-              {/* 编辑资料 */}
-              <button
-                onClick={openEditModal}
-                className="interactive-scale"
-                style={{
-                  border: '1px solid rgba(226, 229, 232, 0.9)',
-                  backgroundColor: '#FFFFFF',
-                  borderRadius: '9999px',
-                  padding: '3px 10px',
-                  fontSize: '8px',
-                  color: 'var(--m-text-sub)',
-                  fontWeight: 800,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                  cursor: 'pointer'
-                }}
-              >
-                <Edit3 size={9} />
-                <span>编辑资料</span>
-                <ReqBadge id="MINE-EDIT" style={{ top: '-10px', right: '-10px' }} />
-              </button>
+              {/* 编辑资料 / 关注+发消息 */}
+              {isOthers ? (
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    onClick={() => toggleFollowUser(targetProfile.id)}
+                    className="interactive-scale"
+                    style={{
+                      border: targetProfile?.isFollowing ? '1px solid #E5E7EB' : 'none',
+                      backgroundColor: targetProfile?.isFollowing ? '#F3F4F6' : 'var(--m-primary)',
+                      borderRadius: '9999px',
+                      padding: '4px 12px',
+                      fontSize: '8px',
+                      color: targetProfile?.isFollowing ? '#4B5563' : '#FFFFFF',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {targetProfile?.isFollowing ? '已关注' : '关注'}
+                  </button>
+                  <button
+                    onClick={() => startPrivateChat(targetProfile.id)}
+                    className="interactive-scale"
+                    style={{
+                      border: '1px solid rgba(226, 229, 232, 0.9)',
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: '9999px',
+                      padding: '4px 12px',
+                      fontSize: '8px',
+                      color: 'var(--m-text-sub)',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    发消息
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={openEditModal}
+                  className="interactive-scale"
+                  style={{
+                    border: '1px solid rgba(226, 229, 232, 0.9)',
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: '9999px',
+                    padding: '3px 10px',
+                    fontSize: '8px',
+                    color: 'var(--m-text-sub)',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Edit3 size={9} />
+                  <span>编辑资料</span>
+                  <ReqBadge id="MINE-EDIT" style={{ top: '-10px', right: '-10px' }} />
+                </button>
+              )}
             </div>
 
             {/* 姓名与标签 */}
             <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <h2 style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>
-                  {user.name}
+                  {isOthers ? targetProfile?.name : user?.name}
                 </h2>
 
                 {/* 年龄、MBTI、性别保密等小标签 */}
@@ -377,20 +471,20 @@ export default function ProfilePage() {
 
               {/* UID & IP属地 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '7.5px', color: 'var(--m-text-muted)', fontWeight: 700 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '2px', cursor: 'pointer' }} onClick={handleCopyId}>
-                  UID: {userId} <Copy size={8} />
+                <span style={{ display: 'flex', alignItems: 'center', gap: '2px', cursor: isOthers ? 'default' : 'pointer' }} onClick={() => !isOthers && handleCopyId()}>
+                  UID: {userId} {!isOthers && <Copy size={8} />}
                 </span>
                 <span>IP: {userIp}</span>
               </div>
 
               <p style={{ fontSize: '8.5px', color: 'var(--m-text-sub)', lineHeight: '1.3', marginTop: '2px' }}>
-                {user.bio}
+                {isOthers ? targetProfile?.bio : user?.bio}
               </p>
             </div>
 
             {/* 自定义人设标签 */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '2px' }}>
-              {user.badges.map((b, i) => (
+              {(isOthers ? (targetProfile?.tags || []) : (user?.badges || [])).map((b, i) => (
                 <span
                   key={i}
                   style={{
@@ -422,15 +516,15 @@ export default function ProfilePage() {
       </div>
 
       {/* 我的同好营横滑卡片 (Point 1 Approved) */}
-      {user && (
+      {(user || isOthers) && (
         <div style={{ padding: '10px 16px', backgroundColor: '#FFFFFF', borderBottom: '1px solid var(--m-border)', display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              我的同好营
-              <ReqBadge id="MINE-HOME" style={{ position: 'relative', top: '-1px' }} />
+              {isOthers ? 'Ta的同好营' : '我的同好营'}
+              {!isOthers && <ReqBadge id="MINE-HOME" style={{ position: 'relative', top: '-1px' }} />}
             </span>
             <button
-              onClick={() => pushRoute('circles')}
+              onClick={() => resetToTab('circles', { initialTab: 'circles' })}
               style={{ background: 'none', border: 'none', fontSize: '8px', color: 'var(--m-text-muted)', fontWeight: 800, display: 'flex', alignItems: 'center', cursor: 'pointer' }}
             >
               <span>全部</span>
@@ -469,37 +563,39 @@ export default function ProfilePage() {
             ))}
 
             {/* 虚线加入同好营卡片 */}
-            <div
-              onClick={() => resetToTab('circles')}
-              className="interactive-scale"
-              style={{
-                flexShrink: 0,
-                width: '90px',
-                height: '59px',
-                borderRadius: '10px',
-                border: '1px dashed var(--m-primary)',
-                backgroundColor: 'var(--m-primary-light)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '2px',
-                cursor: 'pointer'
-              }}
-            >
-              <Plus size={12} className="text-[#E5A9A9]" />
-              <span style={{ fontSize: '7.5px', fontWeight: 800, color: 'var(--m-primary)' }}>加入同好营</span>
-            </div>
+            {!isOthers && (
+              <div
+                onClick={() => resetToTab('circles', { initialTab: 'circles', openDrawer: 'explore' })}
+                className="interactive-scale"
+                style={{
+                  flexShrink: 0,
+                  width: '90px',
+                  height: '59px',
+                  borderRadius: '10px',
+                  border: '1px dashed var(--m-primary)',
+                  backgroundColor: 'var(--m-primary-light)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '2px',
+                  cursor: 'pointer'
+                }}
+              >
+                <Plus size={12} className="text-[#E5A9A9]" />
+                <span style={{ fontSize: '7.5px', fontWeight: 800, color: 'var(--m-primary)' }}>加入同好营</span>
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* ============================================================== */}
       {/* 双级嵌套 Tab 结构 */}
-      {user && (
+      {(user || isOthers) && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 
-          {/* 一级大分类 Tab: 发布 | 草稿箱 | 活动 */}
+          {/* 一级 Tab: 5个平级 Tab（发布/喜欢/收藏/草稿箱/活动） */}
           <div
             style={{
               display: 'flex',
@@ -511,15 +607,17 @@ export default function ProfilePage() {
             }}
           >
             {[
-              { key: 'publish', label: '发布' },
-              { key: 'drafts', label: '草稿箱' },
+              { key: 'publish', label: isOthers ? 'Ta的动态' : '发布' },
+              { key: 'liked', label: '喜欢' },
+              { key: 'collected', label: '收藏' },
+              ...(!isOthers ? [{ key: 'drafts', label: '草稿箱' }] : []),
               { key: 'activities', label: '活动' }
             ].map(tab => {
-              const isActive = activeMainTab === tab.key;
+              const isActive = activeTab === tab.key;
               return (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveMainTab(tab.key)}
+                  onClick={() => setActiveTab(tab.key)}
                   className="interactive-scale"
                   style={{
                     background: 'none',
@@ -536,7 +634,9 @@ export default function ProfilePage() {
                   <span>{tab.label}</span>
                   {tab.key === 'drafts' && <ReqBadge id="MINE-ASSETS" style={{ top: '-10px', right: '-10px' }} />}
                   {tab.key === 'activities' && <ReqBadge id="MINE-ASSETS" style={{ top: '-10px', right: '-10px' }} />}
-                  {tab.key === 'publish' && <ReqBadge id="MINE-HOME" style={{ top: '-10px', right: '-10px' }} />}
+                  {tab.key === 'publish' && !isOthers && <ReqBadge id="MINE-HOME" style={{ top: '-10px', right: '-10px' }} />}
+                  {tab.key === 'liked' && <ReqBadge id="MINE-HOME" style={{ top: '-10px', right: '-10px' }} />}
+                  {tab.key === 'collected' && <ReqBadge id="MINE-HOME" style={{ top: '-10px', right: '-10px' }} />}
                   {isActive && (
                     <div
                       style={{
@@ -555,57 +655,11 @@ export default function ProfilePage() {
             })}
           </div>
 
-          {/* 二级子 Tab: 只在一级 Tab 激活 'publish' 时显示 */}
-          {activeMainTab === 'publish' && (
-            <div
-              style={{
-                display: 'flex',
-                gap: '16px',
-                padding: '6px 16px',
-                backgroundColor: '#FFFFFF',
-                borderBottom: '1px solid rgba(226, 229, 232, 0.25)',
-                flexShrink: 0
-              }}
-            >
-              {[
-                { key: 'works', label: '作品' },
-                { key: 'liked', label: '喜欢' },
-                { key: 'collected', label: '收藏' }
-              ].map(sub => {
-                const isActive = activeSubTab === sub.key;
-                return (
-                  <button
-                    key={sub.key}
-                    onClick={() => setActiveSubTab(sub.key)}
-                    className="interactive-scale"
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      padding: '2px 0',
-                      fontSize: '8.5px',
-                      fontWeight: isActive ? 800 : 500,
-                      color: isActive ? 'var(--m-primary)' : 'var(--m-text-muted)',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      position: 'relative'
-                    }}
-                  >
-                  <span>{sub.label}</span>
-                  <ReqBadge id="MINE-HOME" style={{ top: '-10px', right: '-10px' }} />
-                </button>
-                );
-              })}
-            </div>
-          )}
-
           {/* Tab 滚动内容卡片区域 */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '60px' }}>
 
-            {/* ==================== 1. 发布 Tab (作品/喜欢/收藏) ==================== */}
-            {activeMainTab === 'publish' && (
-              <>
-                {/* 1.1 作品 (我正式发布的动态) */}
-                {activeSubTab === 'works' && (
+            {/* ==================== 1. 发布 Tab (我发布的作品) ==================== */}
+            {activeTab === 'publish' && (
                   myPosts.length > 0 ? (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', padding: '2px 0' }}>
                       {myPosts.map(p => {
@@ -656,21 +710,24 @@ export default function ProfilePage() {
                       <div style={{ width: '42px', height: '42px', borderRadius: '50%', backgroundColor: 'var(--m-primary-light)', display: 'flex', alignItems: 'center', justify: 'center' }}>
                         <Smile size={18} className="text-[#E5A9A9]" />
                       </div>
-                      <span style={{ fontSize: '8px', color: 'var(--m-text-muted)', fontWeight: 700 }}>还没有发布过作品哦~</span>
-                      <button
-                        onClick={() => openPublishFlow()}
-                        className="btn-round btn-primary interactive-scale"
-                        style={{ padding: '4px 14px', fontSize: '8px' }}
-                      >
-                        去发一条
-                      </button>
-
+                      <span style={{ fontSize: '8px', color: 'var(--m-text-muted)', fontWeight: 700 }}>
+                        {isOthers ? 'Ta还没有发布过动态哦~' : '还没有发布过作品哦~'}
+                      </span>
+                      {!isOthers && (
+                        <button
+                          onClick={() => openPublishFlow()}
+                          className="btn-round btn-primary interactive-scale"
+                          style={{ padding: '4px 14px', fontSize: '8px' }}
+                        >
+                          去发一条
+                        </button>
+                      )}
                     </div>
                   )
-                )}
+            )}
 
-                {/* 1.2 喜欢 (我点过赞的动态) */}
-                {activeSubTab === 'liked' && (
+            {/* ==================== 2. 喜欢 Tab (我点赞的动态) ==================== */}
+            {activeTab === 'liked' && (
                   likedPosts.length > 0 ? (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', padding: '2px 0' }}>
                       {likedPosts.map(p => {
@@ -723,10 +780,10 @@ export default function ProfilePage() {
                       <span style={{ fontSize: '8px', color: 'var(--m-text-muted)', fontWeight: 700 }}>还没有点赞过其他动态</span>
                     </div>
                   )
-                )}
+            )}
 
-                {/* 1.3 收藏 (我收藏的动态) */}
-                {activeSubTab === 'collected' && (
+            {/* ==================== 3. 收藏 Tab (我收藏的动态) ==================== */}
+            {activeTab === 'collected' && (
                   collectedPosts.length > 0 ? (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', padding: '2px 0' }}>
                       {collectedPosts.map(p => {
@@ -779,12 +836,10 @@ export default function ProfilePage() {
                       <span style={{ fontSize: '8px', color: 'var(--m-text-muted)', fontWeight: 700 }}>还没有收藏过帖子</span>
                     </div>
                   )
-                )}
-              </>
             )}
 
-            {/* ==================== 2. 草稿箱 Tab ==================== */}
-            {activeMainTab === 'drafts' && (
+            {/* ==================== 4. 草稿箱 Tab ==================== */}
+            {activeTab === 'drafts' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative' }}>
                 <ReqBadge id="MINE-ASSETS" style={{ top: '6px', right: '8px' }} />
                 {mockDrafts.length > 0 ? (
@@ -857,9 +912,44 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* ==================== 3. 活动 Tab (合并想去展会与拼团) ==================== */}
-            {activeMainTab === 'activities' && (
+            {/* ==================== 5. 活动 Tab (合并想去展会与拼团) ==================== */}
+            {activeTab === 'activities' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+                {/* 我的票务入口 */}
+                <div
+                  onClick={() => pushRoute('my-tickets', {}, 'profile')}
+                  className="interactive-scale"
+                  style={{
+                    padding: '12px',
+                    backgroundColor: 'var(--m-bg-card)',
+                    borderRadius: '12px',
+                    border: '1px solid #EEEEEE',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '36px',
+                      height: '36px',
+                      backgroundColor: 'var(--m-primary-light)',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Ticket size={18} style={{ color: 'var(--m-primary)' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>我的票务</div>
+                      <div style={{ fontSize: '7.5px', color: 'var(--m-text-muted)' }}>查看购买的门票与订单</div>
+                    </div>
+                  </div>
+                  <ChevronRight size={16} style={{ color: '#9CA3AF' }} />
+                </div>
 
                 {/* 3.1 拼团活动面基段 */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

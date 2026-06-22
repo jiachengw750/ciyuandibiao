@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Users, BookOpen, Plus, Heart, MessageSquare, ArrowLeft } from 'lucide-react';
+import { Users, BookOpen, Plus, Heart, MessageSquare, ArrowLeft, MoreHorizontal } from 'lucide-react';
 import { ReqBadge } from '../components/ReqAnnotation';
 
 export default function CircleDetailPage() {
@@ -16,6 +16,8 @@ export default function CircleDetailPage() {
     checkLogin,
     openPublishFlow
   } = useApp();
+
+  const [showActionSheet, setShowActionSheet] = useState(false);
 
 
   const currentRoute = routeStack[routeStack.length - 1];
@@ -43,6 +45,8 @@ export default function CircleDetailPage() {
 
   // 根据圈子ID返回对应的精美封面插图
   const getCircleCover = (id) => {
+    const found = circles.find(c => c.id === id);
+    if (found && found.coverImg) return found.coverImg;
     switch (id) {
       case 'cir-001':
         return '/cover_sakura.png'; // 运动番
@@ -104,6 +108,32 @@ export default function CircleDetailPage() {
         >
           <ArrowLeft size={14} strokeWidth={2.5} />
         </button>
+
+        {/* 更多选项三点按钮（仅在已加入时可见） */}
+        {isJoined && (
+          <button 
+            onClick={() => setShowActionSheet(true)}
+            className="interactive-scale"
+            style={{
+              position: 'absolute',
+              top: '12px',
+              right: '12px',
+              width: '26px',
+              height: '26px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              border: 'none',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 15
+            }}
+          >
+            <MoreHorizontal size={14} strokeWidth={2.5} />
+          </button>
+        )}
       </div>
 
       {/* 圈子信息描述区块（白色卡片半重叠效果） */}
@@ -364,6 +394,85 @@ export default function CircleDetailPage() {
             一键加入
             <ReqBadge id="CIR-DETAIL" style={{ top: '-10px', right: '-10px' }} />
           </button>
+        </div>
+      )}
+
+      {/* 底部 Action Sheet 弹出操作面板 */}
+      {showActionSheet && (
+        <div 
+          onClick={() => setShowActionSheet(false)}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(2px)',
+            zIndex: 100,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(16px)',
+              width: '100%',
+              borderTopLeftRadius: '16px',
+              borderTopRightRadius: '16px',
+              padding: '12px 16px 24px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              boxShadow: '0 -4px 16px rgba(0,0,0,0.1)',
+              animation: 'slideUp 0.2s ease-out'
+            }}
+          >
+            <div style={{ width: '32px', height: '4px', backgroundColor: '#E2E5E8', borderRadius: '2px', alignSelf: 'center', marginBottom: '8px' }} />
+
+            <button 
+              onClick={() => {
+                setShowActionSheet(false);
+                setTimeout(() => {
+                  if (window.confirm(`确定要退出【${circle.name}】吗？退出后您将失去发动态和互动的权限。`)) {
+                    toggleJoinCircle(circle.id);
+                  }
+                }, 100);
+              }}
+              style={{
+                width: '100%',
+                backgroundColor: 'rgba(255, 94, 94, 0.08)',
+                color: '#FF5E5E',
+                border: 'none',
+                padding: '12px',
+                borderRadius: '12px',
+                fontSize: '10px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                textAlign: 'center'
+              }}
+            >
+              退出同好营
+            </button>
+
+            <button 
+              onClick={() => setShowActionSheet(false)}
+              style={{
+                width: '100%',
+                backgroundColor: 'var(--m-slate-light)',
+                color: 'var(--m-text-sub)',
+                border: 'none',
+                padding: '12px',
+                borderRadius: '12px',
+                fontSize: '10px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                textAlign: 'center'
+              }}
+            >
+              取消
+            </button>
+          </div>
         </div>
       )}
 

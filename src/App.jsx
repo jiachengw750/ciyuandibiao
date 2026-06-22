@@ -8,6 +8,7 @@ import ActivityListPage from './pages/ActivityListPage';
 import ActivityDetailPage from './pages/ActivityDetailPage';
 import GroupDetailPage from './pages/GroupDetailPage';
 import GroupApprovePage from './pages/GroupApprovePage';
+import PresentationPage from './pages/PresentationPage';
 import CreateGroupPage from './pages/CreateGroupPage';
 import CircleHomepage from './pages/CircleHomepage';
 import CircleDetailPage from './pages/CircleDetailPage';
@@ -18,6 +19,13 @@ import ChatWindowPage from './pages/ChatWindowPage';
 import StrangerChatPage from './pages/StrangerChatPage';
 import ProfilePage from './pages/ProfilePage';
 import SocialListPage from './pages/SocialListPage';
+import TicketSelectPage from './pages/TicketSelectPage';
+import KYCPage from './pages/KYCPage';
+import CoserInfoPage from './pages/CoserInfoPage';
+import PaymentPage from './pages/PaymentPage';
+import PaymentResultPage from './pages/PaymentResultPage';
+import MyTicketsPage from './pages/MyTicketsPage';
+import QRCodePage from './pages/QRCodePage';
 
 function AppContent() {
   const { routeStack } = useApp();
@@ -35,6 +43,8 @@ function AppContent() {
         return <GroupDetailPage />;
       case 'group-approve':
         return <GroupApprovePage />;
+      case 'pitch':
+        return <PresentationPage />;
       case 'create-group':
         return <CreateGroupPage />;
       case 'circles':
@@ -55,6 +65,20 @@ function AppContent() {
         return <ProfilePage />;
       case 'social-list':
         return <SocialListPage />;
+      case 'ticket-select':
+        return <TicketSelectPage />;
+      case 'kyc':
+        return <KYCPage />;
+      case 'coser-info':
+        return <CoserInfoPage />;
+      case 'payment':
+        return <PaymentPage />;
+      case 'payment-result':
+        return <PaymentResultPage />;
+      case 'my-tickets':
+        return <MyTicketsPage />;
+      case 'qr-code':
+        return <QRCodePage />;
       default:
         return <CircleHomepage />;
     }
