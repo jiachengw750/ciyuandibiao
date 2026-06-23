@@ -4,6 +4,179 @@ import { MessageSquare, Bell, Heart, UserPlus, ArrowLeft, ShieldAlert, Trash2, B
 import { ReqBadge } from '../components/ReqAnnotation';
 import LoginGuard from '../components/LoginGuard';
 
+// 陌生人消息列表项组件（支持左滑）
+function SwipeableStrangerItem({ thread, onDelete, onBlock, onReport, onClick }) {
+  const [offsetX, setOffsetX] = useState(0);
+  const [startX, setStartX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleTouchStart = (e) => {
+    setStartX(e.touches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging) return;
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - startX;
+    // 只允许向左滑（负值），最多滑动 180px
+    if (diff < 0) {
+      setOffsetX(Math.max(diff, -180));
+    } else {
+      setOffsetX(0);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    // 滑动超过 60px 则固定在展开状态，否则回弹
+    if (offsetX < -60) {
+      setOffsetX(-180);
+    } else {
+      setOffsetX(0);
+    }
+  };
+
+  const handleItemClick = () => {
+    if (offsetX < 0) {
+      // 如果处于展开状态，先收回
+      setOffsetX(0);
+    } else {
+      // 否则进入聊天
+      onClick();
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        backgroundColor: 'var(--m-bg-card)',
+        borderRadius: '12px',
+        border: '1px solid #EEEEEE',
+        overflow: 'hidden',
+        marginBottom: '8px'
+      }}
+    >
+      {/* 背景层：操作按钮 */}
+      <div
+        style={{
+          position: 'absolute',
+          right: 0,
+          top: 0,
+          bottom: 0,
+          width: '180px',
+          display: 'flex',
+          alignItems: 'stretch'
+        }}
+      >
+        <button
+          onClick={() => {
+            setOffsetX(0);
+            if (confirm('确定删除这条陌生人会话记录吗？')) onDelete();
+          }}
+          style={{
+            flex: 1,
+            border: 'none',
+            backgroundColor: '#95A5B8',
+            color: '#FFFFFF',
+            fontSize: '9px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px'
+          }}
+        >
+          <Trash2 size={14} strokeWidth={2.5} />
+          删除
+        </button>
+        <button
+          onClick={() => {
+            setOffsetX(0);
+            if (confirm('拉黑后将拒收并隐藏对方消息，确定继续吗？')) onBlock();
+          }}
+          style={{
+            flex: 1,
+            border: 'none',
+            backgroundColor: '#5C6B7C',
+            color: '#FFFFFF',
+            fontSize: '9px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px'
+          }}
+        >
+          <Ban size={14} strokeWidth={2.5} />
+          拉黑
+        </button>
+        <button
+          onClick={() => {
+            setOffsetX(0);
+            const reason = prompt('请选择或输入举报类型：诈骗 / 骚扰 / 虚假信息', '诈骗');
+            if (reason) onReport(reason);
+          }}
+          style={{
+            flex: 1,
+            border: 'none',
+            backgroundColor: '#FF6384',
+            color: '#FFFFFF',
+            fontSize: '9px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px'
+          }}
+        >
+          <Flag size={14} strokeWidth={2.5} />
+          举报
+        </button>
+      </div>
+
+      {/* 前景层：消息卡片（可滑动） */}
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={handleItemClick}
+        style={{
+          position: 'relative',
+          backgroundColor: 'var(--m-bg-card)',
+          padding: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          cursor: 'pointer',
+          transform: `translateX(${offsetX}px)`,
+          transition: isDragging ? 'none' : 'transform 0.3s ease',
+          userSelect: 'none'
+        }}
+      >
+        <img src={thread.avatar} alt="avatar" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+            <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>{thread.sender}</span>
+            <span style={{ fontSize: '7.5px', color: 'var(--m-text-muted)' }}>{thread.time}</span>
+          </div>
+          <p style={{ margin: 0, fontSize: '8px', color: 'var(--m-text-sub)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{thread.preview}</p>
+        </div>
+        {thread.riskLevel === 'warning' && (
+          <span style={{ fontSize: '7px', fontWeight: 800, color: '#8C6F3D', backgroundColor: '#FFF8E7', borderRadius: '9999px', padding: '2px 6px', flexShrink: 0 }}>风险</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function MessagePage() {
   const {
     messages,
@@ -144,67 +317,20 @@ export default function MessagePage() {
 
             {strangerList.length > 0 ? (
               strangerList.map(thread => (
-                <div key={thread.id} style={{ backgroundColor: 'var(--m-bg-card)', borderRadius: '12px', padding: '12px', border: '1px solid #EEEEEE', boxShadow: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div
-                    onClick={() => pushRoute('stranger-chat', { threadId: thread.id }, 'messages')}
-                    className="interactive-scale"
-                    style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-                  >
-                    <img src={thread.avatar} alt="avatar" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'var(--m-text-main)' }}>{thread.sender}</span>
-                        <span style={{ fontSize: '7.5px', color: 'var(--m-text-muted)' }}>{thread.time}</span>
-                      </div>
-                      <p style={{ margin: '3px 0 0 0', fontSize: '8px', color: 'var(--m-text-sub)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{thread.preview}</p>
-                    </div>
-                    {thread.riskLevel === 'warning' && (
-                      <span style={{ fontSize: '7px', fontWeight: 800, color: '#8C6F3D', backgroundColor: '#FFF8E7', borderRadius: '9999px', padding: '2px 6px' }}>风险</span>
-                    )}
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-                    <button
-                      onClick={() => {
-                        if (confirm('确定删除这条陌生人会话记录吗？')) deleteStrangerThread(thread.id);
-                      }}
-                      style={{ border: 'none', borderRadius: '9999px', padding: '6px 0', backgroundColor: '#F8F9FA', color: 'var(--m-text-sub)', fontSize: '8px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', cursor: 'pointer' }}
-                    >
-                      <Trash2 size={10} /> 删除
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm('拉黑后将拒收并隐藏对方消息，确定继续吗？')) blockStranger(thread.id);
-                      }}
-                      style={{ border: 'none', borderRadius: '9999px', padding: '6px 0', backgroundColor: 'var(--m-slate-light)', color: 'var(--m-text-sub)', fontSize: '8px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', cursor: 'pointer' }}
-                    >
-                      <Ban size={10} /> 拉黑
-                    </button>
-                    <button
-                      onClick={() => {
-                        const reason = prompt('请选择或输入举报类型：诈骗 / 骚扰 / 虚假信息', '诈骗');
-                        if (reason) reportStranger(thread.id, reason);
-                      }}
-                      style={{ border: 'none', borderRadius: '9999px', padding: '6px 0', backgroundColor: 'rgba(255,99,132,0.08)', color: '#FF6384', fontSize: '8px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', cursor: 'pointer' }}
-                    >
-                      <Flag size={10} /> 举报
-                    </button>
-                  </div>
-                </div>
+                <SwipeableStrangerItem
+                  key={thread.id}
+                  thread={thread}
+                  onClick={() => pushRoute('stranger-chat', { threadId: thread.id }, 'messages')}
+                  onDelete={() => deleteStrangerThread(thread.id)}
+                  onBlock={() => blockStranger(thread.id)}
+                  onReport={(reason) => reportStranger(thread.id, reason)}
+                />
               ))
             ) : (
               <div style={{ padding: '30px', textAlign: 'center', backgroundColor: 'var(--m-bg-card)', borderRadius: '12px', border: '1px solid #EEEEEE', color: 'var(--m-text-muted)', fontSize: '9px' }}>
                 暂无未处理陌生人消息
               </div>
             )}
-
-            <button
-              onClick={() => setShowStrangers(false)}
-              className="btn-round btn-secondary interactive-scale"
-              style={{ marginTop: '6px', fontSize: '9px', padding: '8px 0', justifyContent: 'center', display: 'flex' }}
-            >
-              返回聊天列表
-            </button>
           </div>
         ) : activeNotificationType ? (
           /* ============================================================== */
@@ -248,23 +374,6 @@ export default function MessagePage() {
                 </p>
               </div>
             ))}
-
-            <button
-              onClick={() => setActiveNotificationType(null)}
-              className="btn-round btn-secondary interactive-scale"
-              style={{
-                marginTop: '12px',
-                fontSize: '9px',
-                padding: '8px 0',
-                textAlign: 'center',
-                justifyContent: 'center',
-                display: 'flex',
-                position: 'relative'
-              }}
-            >
-              返回聊天列表
-              <ReqBadge id="MSG-NOTIF" style={{ top: '-10px', right: '-10px' }} />
-            </button>
           </div>
         ) : (
           /* ============================================================== */
@@ -619,6 +728,55 @@ export default function MessagePage() {
                   }}
                 >
                   暂无活跃聊天会话。参与面基拼团或私聊其他同好后将自动开启。
+                </div>
+              )}
+
+              {/* 陌生人消息聚合卡片 - 固定在会话列表底部 */}
+              {visibleStrangerMessages.length > 0 && (
+                <div
+                  onClick={() => setShowStrangers(true)}
+                  className="interactive-scale"
+                  style={{
+                    backgroundColor: '#FFF9E6',
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    border: '1px solid #F5E6C3',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 3px rgba(245, 158, 11, 0.08)',
+                    position: 'relative'
+                  }}
+                >
+                  <ReqBadge id="MSG-012a" style={{ top: '-8px', right: '-8px' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '10px',
+                        backgroundColor: '#FEF3C7',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#B45309'
+                      }}
+                    >
+                      <ShieldAlert size={16} strokeWidth={2.5} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#92400E' }}>
+                        陌生人消息 ({visibleStrangerMessages.length}条未读)
+                      </span>
+                      <span style={{ fontSize: '7.5px', color: '#B45309', fontWeight: 500 }}>
+                        需要您审核的陌生人私信
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ color: '#B45309', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ fontSize: '18px', fontWeight: 300 }}>›</span>
+                  </div>
                 </div>
               )}
 
